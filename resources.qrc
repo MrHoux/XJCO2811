@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/avatars">
+        <file alias="avatar1.jpg">assets/avatar/avatar1.jpg</file>
+        <file alias="avatar2.jpg">assets/avatar/avatar2.jpg</file>
+        <file alias="avatar3.jpg">assets/avatar/avatar3.jpg</file>
+        <file alias="avatar4.jpg">assets/avatar/avatar4.jpg</file>
+        <file alias="avatar5.jpg">assets/avatar/avatar5.jpg</file>
+        <file alias="avatar6.jpg">assets/avatar/avatar6.jpg</file>
+        <file alias="avatar7.jpg">assets/avatar/avatar7.jpg</file>
+    </qresource>
+</RCC>

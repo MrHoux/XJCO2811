@@ -1,6 +1,6 @@
 QT += core gui widgets multimedia multimediawidgets
 
-TARGET = MVP
+TARGET = FeeL
 
 CONFIG += c++11
 
@@ -12,11 +12,19 @@ CONFIG += c++11
 SOURCES += \
         the_button.cpp \
         the_player.cpp \
-        mvp.cpp
+        friendwindow.cpp \
+        profilewindow.cpp \
+        FeeL.cpp
 
 HEADERS += \
     the_button.h \
-    the_player.h
+    the_player.h \
+    friendwindow.h \
+    profilewindow.h \
+    friends_data.h
+
+RESOURCES += \
+    resources.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
