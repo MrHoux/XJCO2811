@@ -31,9 +31,24 @@ Friendwindow::Friendwindow(QWidget *parent)
     });
 
     // add the testing friend
-    m_friends.append({"Tom", "like hunting"});
-    m_friends.append({"Aile", "like swimming"});
-    m_friends.append({"Charlie", "No hobbies"});
+    m_friends.append(FriendData(QStringLiteral("Tom"),
+                                QStringLiteral("@tom"),
+                                QStringLiteral("like hunting"),
+                                QStringLiteral("Followed by 2k people"),
+                                QStringLiteral(":/avatars/avatar1.jpg"),
+                                5, 12, 18));
+    m_friends.append(FriendData(QStringLiteral("Aile"),
+                                QStringLiteral("@aile"),
+                                QStringLiteral("like swimming"),
+                                QStringLiteral("Followed by 3k people"),
+                                QStringLiteral(":/avatars/avatar2.jpg"),
+                                8, 20, 24));
+    m_friends.append(FriendData(QStringLiteral("Charlie"),
+                                QStringLiteral("@charlie"),
+                                QStringLiteral("No hobbies"),
+                                QStringLiteral("Followed by 1k people"),
+                                QStringLiteral(":/avatars/avatar3.jpg"),
+                                2, 7, 10));
     for (const auto& friendData : m_friends) {
         new QListWidgetItem(friendData.name, m_friendList);
     }
