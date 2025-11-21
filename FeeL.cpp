@@ -46,6 +46,7 @@
 #include <QtCore/QString>
 #include <QEvent>
 #include <QMouseEvent>
+#include "chatwindow.h"
 #include "the_button.h"
 #include "friends_data.h"
 
@@ -232,6 +233,10 @@ int main(int argc, char *argv[]) {
     profileHandle->setStyleSheet("font-size:14px; color:#666;");
     profileLayout->addWidget(profileHandle, 0, Qt::AlignHCenter);
 
+    QLabel *profileFollowStatus = new QLabel();
+    profileFollowStatus->setStyleSheet("font-size:13px; color:#444; border:2px solid #0b0b0b; border-radius:12px; padding:6px 10px; background:#ffffff;");
+    profileLayout->addWidget(profileFollowStatus, 0, Qt::AlignHCenter);
+
     QHBoxLayout *statsRow = new QHBoxLayout();
     statsRow->setSpacing(28);
     auto statWidget = [](QLabel **valueLabel, const QString &label) {
@@ -267,10 +272,6 @@ int main(int argc, char *argv[]) {
     shareProfile->setStyleSheet("padding:12px 18px; border-radius:18px; background:#2f2f2f; color:#ffffff; font-weight:700;");
     profileLayout->addWidget(shareProfile, 0, Qt::AlignHCenter);
 
-    QLabel *privacyNote = new QLabel("Your Posts are private and ephemeral unless shared.");
-    privacyNote->setStyleSheet("font-size:12px; color:#6a6a6a;");
-    profileLayout->addWidget(privacyNote, 0, Qt::AlignHCenter);
-
     // gallery grid
     QWidget *galleryWrap = new QWidget();
     QGridLayout *galleryLayout = new QGridLayout(galleryWrap);
@@ -298,6 +299,13 @@ int main(int argc, char *argv[]) {
         }
         profileName->setText(f.name);
         profileHandle->setText(f.handle);
+        if (f.name == myProfile.name) {
+            profileFollowStatus->setText("This is you");
+            profileFollowStatus->setVisible(false);
+        } else {
+            profileFollowStatus->setText("Follow");
+            profileFollowStatus->setVisible(true);
+        }
         // update stats
         berealValue->setText(QString::number(f.bereals));
         friendsValue->setText(QString::number(f.friends));
@@ -670,11 +678,18 @@ int main(int argc, char *argv[]) {
 
     QList<FriendData> friendSubset = friends.mid(0, 3);
     QList<FriendData> popularSubset = friends.mid(3); // disjoint from friends
+    ChatWindow *chatPage = new ChatWindow();
+    chatPage->setThreads(friendSubset);
+    QObject::connect(chatPage, &ChatWindow::showProfile, &window, [=](const FriendData &f) {
+        applyProfile(f);
+        contentStack->setCurrentWidget(profilePage);
+    });
 
     auto renderCards = [&](const QList<FriendData> &list, QVBoxLayout *targetLayout, const QString &filter, bool isFriendList) {
         clearLayoutWithWidgets(targetLayout);
         const bool hasFilter = !filter.trimmed().isEmpty();
         int added = 0;
+        int idxCounter = 0;
         for (const auto &f : list) {
             if (hasFilter) {
                 const QString text = filter.trimmed();
@@ -684,6 +699,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             ++added;
+            int idx = idxCounter++;
             QFrame *card = new QFrame();
             card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:18px; }");
             QHBoxLayout *cardLayout = new QHBoxLayout(card);
@@ -703,7 +719,7 @@ int main(int argc, char *argv[]) {
 
             QVBoxLayout *infoColumn = new QVBoxLayout();
             infoColumn->setContentsMargins(0, 0, 0, 0);
-            infoColumn->setSpacing(2);
+            infoColumn->setSpacing(0);
             QPushButton *nameBtn = new QPushButton(f.name);
             nameBtn->setFlat(true);
             nameBtn->setStyleSheet("text-align:left; font-weight:700; font-size:16px; color:#0b0b0b;");
@@ -711,7 +727,7 @@ int main(int argc, char *argv[]) {
             QLabel *handleLbl = new QLabel(f.handle);
             handleLbl->setStyleSheet("font-size:13px; color:#5a5a5a;");
             infoColumn->addWidget(handleLbl);
-            QLabel *followersLbl = new QLabel(f.followers);
+            QLabel *followersLbl = new QLabel(QStringLiteral("Followed by %1 people").arg(f.followers));
             followersLbl->setStyleSheet("font-size:12px; color:#7a7a7a;");
             infoColumn->addWidget(followersLbl);
             cardLayout->addLayout(infoColumn);
@@ -724,6 +740,15 @@ int main(int argc, char *argv[]) {
                 followBtn->setStyleSheet("padding:6px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
             }
             cardLayout->addWidget(followBtn);
+            if (isFriendList) {
+                QPushButton *chatBtn = new QPushButton("Chat");
+                chatBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
+                cardLayout->addWidget(chatBtn);
+                QObject::connect(chatBtn, &QPushButton::clicked, &window, [=]() {
+                    chatPage->openThreadByIndex(idx);
+                    contentStack->setCurrentWidget(chatPage);
+                });
+            }
 
             targetLayout->addWidget(card);
 
@@ -750,6 +775,7 @@ int main(int argc, char *argv[]) {
     friendsArea->setWidget(friendsListWrap);
     friendsLayout->addWidget(friendsArea);
     contentStack->addWidget(friendsPage);
+    contentStack->addWidget(chatPage);
 
     QObject::connect(search, &QLineEdit::textChanged, &window, rebuildFriendsList);
 
@@ -771,6 +797,10 @@ int main(int argc, char *argv[]) {
         if (item == "FRIENDS") {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(friendsPage);
+            });
+        } else if (item == "CHAT") {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                contentStack->setCurrentWidget(chatPage);
             });
         } else if (item == "PROFILE") {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {

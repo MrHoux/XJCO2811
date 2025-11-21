@@ -14,14 +14,16 @@ SOURCES += \
         the_player.cpp \
         friendwindow.cpp \
         profilewindow.cpp \
-        FeeL.cpp
+        FeeL.cpp \
+        chatwindow.cpp
 
 HEADERS += \
     the_button.h \
     the_player.h \
     friendwindow.h \
     profilewindow.h \
-    friends_data.h
+    friends_data.h \
+    chatwindow.h
 
 RESOURCES += \
     resources.qrc
