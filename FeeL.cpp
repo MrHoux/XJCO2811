@@ -46,6 +46,7 @@
 #include <QtCore/QString>
 #include <QEvent>
 #include <QMouseEvent>
+#include <QtWidgets/QDialog>
 #include "chatwindow.h"
 #include "the_button.h"
 #include "friends_data.h"
@@ -89,6 +90,28 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
     return out;
 }
 
+// helper: draw a heart outline/fill icon for like buttons
+QIcon makeHeartIcon(bool filled, int size = 22) {
+    QPixmap pm(size, size);
+    pm.fill(Qt::transparent);
+    QPainter painter(&pm);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    const qreal w = size;
+    const qreal h = size;
+    QPainterPath heart;
+    heart.moveTo(w * 0.50, h * 0.82);
+    heart.cubicTo(w * 0.15, h * 0.60, w * 0.05, h * 0.28, w * 0.26, h * 0.20);
+    heart.cubicTo(w * 0.44, h * 0.13, w * 0.50, h * 0.26, w * 0.50, h * 0.30);
+    heart.cubicTo(w * 0.50, h * 0.26, w * 0.56, h * 0.13, w * 0.74, h * 0.20);
+    heart.cubicTo(w * 0.95, h * 0.28, w * 0.85, h * 0.60, w * 0.50, h * 0.82);
+
+    painter.setPen(QPen(QColor("#0b0b0b"), 2));
+    if (filled) painter.setBrush(QColor("#e63946"));
+    painter.drawPath(heart);
+    return QIcon(pm);
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -112,7 +135,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (videos.size() == 0) {
-        const int result = QMessageBox::information(
+        QMessageBox::information(
                     NULL,
                     QString("FeeL"),
                     QString("no videos found in selected folder."));
@@ -210,6 +233,87 @@ int main(int argc, char *argv[]) {
         return result;
     };
 
+    auto showShareSheet = [&](const QString &title, QWidget *parent) {
+        QDialog dialog(parent);
+        dialog.setModal(true);
+        dialog.setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+        dialog.setAttribute(Qt::WA_TranslucentBackground);
+        QVBoxLayout *outer = new QVBoxLayout(&dialog);
+        outer->setContentsMargins(24, 24, 24, 24);
+
+        QFrame *sheet = new QFrame();
+        sheet->setObjectName("shareSheet");
+        sheet->setStyleSheet("#shareSheet { background:#ffffff; border:2px solid #0b0b0b; border-radius:22px; }");
+        QVBoxLayout *sheetLayout = new QVBoxLayout(sheet);
+        sheetLayout->setSpacing(12);
+        sheetLayout->setContentsMargins(18, 18, 18, 18);
+
+        QLabel *titleLbl = new QLabel(title);
+        titleLbl->setStyleSheet("font-weight:800; font-size:16px;");
+        sheetLayout->addWidget(titleLbl);
+
+        QLabel *subtitle = new QLabel("Send to apps or drop inside friends.");
+        subtitle->setStyleSheet("color:#6a6a6a;");
+        sheetLayout->addWidget(subtitle);
+
+        QStringList apps = {"Copy link", "Instagram", "Messages", "Save to board"};
+        QHBoxLayout *appRow = new QHBoxLayout();
+        appRow->setSpacing(8);
+        for (const auto &app : apps) {
+            QPushButton *chip = new QPushButton(app);
+            chip->setStyleSheet("padding:8px 12px; border:1px solid #0b0b0b; border-radius:12px; background:#f7f7f7; font-weight:600;");
+            appRow->addWidget(chip);
+        }
+        appRow->addStretch();
+        sheetLayout->addLayout(appRow);
+
+        QLabel *friendsTitle = new QLabel("Friends in FeeL");
+        friendsTitle->setStyleSheet("font-weight:700; font-size:14px; margin-top:6px;");
+        sheetLayout->addWidget(friendsTitle);
+
+        QVBoxLayout *friendRows = new QVBoxLayout();
+        friendRows->setSpacing(8);
+        const int friendSample = qMin(4, friends.size());
+        for (int i = 0; i < friendSample; ++i) {
+            const FriendData &f = friends.at(i);
+            QWidget *row = new QWidget();
+            QHBoxLayout *rowLayout = new QHBoxLayout(row);
+            rowLayout->setContentsMargins(0, 0, 0, 0);
+            rowLayout->setSpacing(10);
+
+            QLabel *av = new QLabel();
+            av->setFixedSize(36, 36);
+            av->setPixmap(makeAvatarPixmap(f.avatar, 36));
+            rowLayout->addWidget(av);
+
+            QVBoxLayout *text = new QVBoxLayout();
+            text->setContentsMargins(0, 0, 0, 0);
+            text->setSpacing(0);
+            QLabel *name = new QLabel(f.name);
+            name->setStyleSheet("font-weight:700;");
+            QLabel *handle = new QLabel(f.handle);
+            handle->setStyleSheet("color:#555;");
+            text->addWidget(name);
+            text->addWidget(handle);
+            rowLayout->addLayout(text);
+            rowLayout->addStretch();
+
+            QPushButton *send = new QPushButton("Send");
+            send->setStyleSheet("padding:6px 12px; border:1px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
+            rowLayout->addWidget(send);
+            friendRows->addWidget(row);
+        }
+        sheetLayout->addLayout(friendRows);
+
+        QPushButton *close = new QPushButton("Close");
+        close->setStyleSheet("padding:8px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
+        QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
+        sheetLayout->addWidget(close, 0, Qt::AlignRight);
+
+        outer->addWidget(sheet);
+        dialog.exec();
+    };
+
     // profile page (populated on selection)
     QWidget *profilePage = new QWidget();
     QVBoxLayout *profileLayout = new QVBoxLayout(profilePage);
@@ -271,6 +375,9 @@ int main(int argc, char *argv[]) {
     QPushButton *shareProfile = new QPushButton("Share Profile");
     shareProfile->setStyleSheet("padding:12px 18px; border-radius:18px; background:#2f2f2f; color:#ffffff; font-weight:700;");
     profileLayout->addWidget(shareProfile, 0, Qt::AlignHCenter);
+    QObject::connect(shareProfile, &QPushButton::clicked, &window, [&]() {
+        showShareSheet(QStringLiteral("Share %1").arg(myProfile.handle), &window);
+    });
 
     // gallery grid
     QWidget *galleryWrap = new QWidget();
@@ -356,10 +463,35 @@ int main(int argc, char *argv[]) {
         QWidget *widget = nullptr;
         QMediaPlayer *player = nullptr;
         QVideoWidget *video = nullptr;
+        QVBoxLayout *commentsList = nullptr;
+        QLineEdit *commentInput = nullptr;
+        QToolButton *likeButton = nullptr;
+        QLabel *likeCountLabel = nullptr;
+        QToolButton *shareButton = nullptr;
+        int likeCount = 0;
+        bool liked = false;
+        TheButtonInfo *info = nullptr;
+        FriendData account;
+    };
+
+    std::function<void()> refreshFeedGeometry;
+    std::function<void(FeedCard&)> openDetailSheet;
+
+    auto updateLikeUI = [&](FeedCard &fc) {
+        if (fc.likeButton) {
+            fc.likeButton->setChecked(fc.liked);
+            fc.likeButton->setIcon(makeHeartIcon(fc.liked, 22));
+        }
+        if (fc.likeCountLabel) fc.likeCountLabel->setText(QString::number(fc.likeCount));
     };
 
     // home page cards showing friend accounts as publishers
-    auto createPhoneCard = [&](TheButtonInfo* info, const FriendData &account, bool autoPlay) -> FeedCard {
+    auto buildPhoneCard = [&](FeedCard &fc, TheButtonInfo* info, const FriendData &account, bool autoPlay) {
+        fc.info = info;
+        fc.account = account;
+        fc.liked = false;
+        fc.likeCount = 120 + account.bereals * 6 + account.friends / 2;
+
         QFrame *card = new QFrame();
         card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #101010; border-radius:28px; }");
         QVBoxLayout *cardLayout = new QVBoxLayout(card);
@@ -372,7 +504,7 @@ int main(int argc, char *argv[]) {
         if (info != nullptr) {
             cardVideo = new QVideoWidget(card);
             cardVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            cardVideo->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#050505;");
+            cardVideo->setStyleSheet("border:1px solid #101010; border-radius:16px; background:#050505;");
             cardPlayer = new QMediaPlayer(cardVideo);
             QMediaPlaylist *loop = new QMediaPlaylist(cardPlayer);
             loop->addMedia(*info->url);
@@ -384,13 +516,13 @@ int main(int argc, char *argv[]) {
             } else {
                 cardPlayer->play();
                 cardPlayer->pause();
-                cardPlayer->setPosition(0); // force first frame for preview
+                cardPlayer->setPosition(0);
             }
             mediaSurface = cardVideo;
         } else {
             QFrame *placeholder = new QFrame();
             placeholder->setMinimumHeight(260);
-            placeholder->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#f7f7f7;");
+            placeholder->setStyleSheet("border:1px solid #101010; border-radius:16px; background:#f7f7f7;");
             QLabel *videoText = new QLabel("VIDEOSALV", placeholder);
             videoText->setAlignment(Qt::AlignCenter);
             videoText->setStyleSheet("font-size:18px; letter-spacing:4px; color:#9a9a9a;");
@@ -414,7 +546,7 @@ int main(int argc, char *argv[]) {
         if (!avatar.isNull()) {
             avatarBtn->setIcon(QIcon(avatar));
         }
-        avatarBtn->setStyleSheet("border:2px solid #101010; border-radius:22px; background:#fdfdfd;");
+        avatarBtn->setStyleSheet("border:1px solid #101010; border-radius:22px; background:#fdfdfd;");
         QObject::connect(avatarBtn, &QPushButton::clicked, &window, goProfile);
 
         QVBoxLayout *profileText = new QVBoxLayout();
@@ -431,49 +563,48 @@ int main(int argc, char *argv[]) {
         QObject::connect(handleBtn, &QPushButton::clicked, &window, goProfile);
         profileText->addWidget(handleBtn);
         QPushButton *followButton = new QPushButton("FOLLOW");
-        followButton->setStyleSheet("QPushButton { border:2px solid #101010; border-radius:16px; padding:4px 16px; background:#ffffff; font-weight:600; }");
+        followButton->setStyleSheet("QPushButton { border:1px solid #101010; border-radius:16px; padding:4px 16px; background:#ffffff; font-weight:600; }");
         profileRow->addWidget(avatarBtn);
         profileRow->addLayout(profileText);
         profileRow->addStretch();
         profileRow->addWidget(followButton);
         cardLayout->addLayout(profileRow);
 
-        QFrame *line = new QFrame();
-        line->setFrameShape(QFrame::HLine);
-        line->setStyleSheet("color:#cfcfcf;");
-        cardLayout->addWidget(line);
-
         QHBoxLayout *statsRow = new QHBoxLayout();
-        statsRow->setSpacing(16);
-        statsRow->addWidget(new QLabel("LIKE 123"));
-        statsRow->addWidget(new QLabel("CHAT 45"));
+        statsRow->setSpacing(10);
+        QToolButton *likeBtn = new QToolButton();
+        likeBtn->setCheckable(true);
+        likeBtn->setAutoRaise(true);
+        likeBtn->setIcon(makeHeartIcon(false, 22));
+        likeBtn->setStyleSheet("QToolButton { border:none; padding:6px; }");
+        QLabel *likeCount = new QLabel(QString::number(fc.likeCount));
+        likeCount->setStyleSheet("font-weight:700; color:#0b0b0b;");
+        statsRow->addWidget(likeBtn);
+        statsRow->addWidget(likeCount);
         statsRow->addStretch();
-        QLabel *shareIcon = new QLabel("SHARE");
-        statsRow->addWidget(shareIcon);
+        QToolButton *shareBtn = new QToolButton();
+        shareBtn->setText("Share");
+        shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #101010; border-radius:14px; background:#ffffff; font-weight:700; }");
+        statsRow->addWidget(shareBtn);
         cardLayout->addLayout(statsRow);
 
-        QFrame *commentLine = new QFrame();
-        commentLine->setFrameShape(QFrame::HLine);
-        commentLine->setStyleSheet("color:#cfcfcf;");
-        cardLayout->addWidget(commentLine);
-
         QVBoxLayout *commentSection = new QVBoxLayout();
-        commentSection->setSpacing(8);
+        commentSection->setSpacing(6);
         QLabel *commentLabel = new QLabel("Comments");
-        commentLabel->setStyleSheet("font-weight:600; color:#0b0b0b;");
+        commentLabel->setStyleSheet("font-weight:700; color:#0b0b0b;");
         commentSection->addWidget(commentLabel);
 
         QVBoxLayout *commentsList = new QVBoxLayout();
         commentsList->setContentsMargins(0, 0, 0, 0);
-        commentsList->setSpacing(8);
+        commentsList->setSpacing(10);
         commentSection->addLayout(commentsList);
 
         QLineEdit *commentInput = new QLineEdit();
         commentInput->setPlaceholderText("Add a comment...");
-        commentInput->setStyleSheet("padding:8px 10px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff;");
+        commentInput->setStyleSheet("padding:10px 12px; border:0; border-radius:14px; background:#f5f5f5;");
         commentSection->addWidget(commentInput);
 
-        auto addComment = [=]() {
+        auto addComment = [=, &fc]() {
             const QString text = commentInput->text().trimmed();
             if (text.isEmpty())
                 return;
@@ -486,7 +617,7 @@ int main(int argc, char *argv[]) {
             if (!myAvatar.isNull()) {
                 avatarLbl->setPixmap(myAvatar);
             }
-            avatarLbl->setStyleSheet("border:2px solid #0b0b0b; border-radius:14px;");
+            avatarLbl->setStyleSheet("border-radius:14px;");
             row->addWidget(avatarLbl);
 
             QVBoxLayout *textCol = new QVBoxLayout();
@@ -505,16 +636,231 @@ int main(int argc, char *argv[]) {
             rowWrap->setLayout(row);
             commentsList->addWidget(rowWrap);
             commentInput->clear();
+            if (refreshFeedGeometry) refreshFeedGeometry();
         };
         QObject::connect(commentInput, &QLineEdit::returnPressed, &window, addComment);
 
         cardLayout->addLayout(commentSection);
 
-        FeedCard fc;
+        QObject::connect(likeBtn, &QToolButton::clicked, &window, [&, likeBtn, likeCount]() {
+            fc.liked = likeBtn->isChecked();
+            fc.likeCount += fc.liked ? 1 : (fc.likeCount > 0 ? -1 : 0);
+            updateLikeUI(fc);
+            likeCount->setText(QString::number(fc.likeCount));
+        });
+
+        QObject::connect(shareBtn, &QToolButton::clicked, &window, [&, account]() {
+            showShareSheet(QStringLiteral("Share %1").arg(account.handle), &window);
+        });
+
+        PlayTapFilter *cardTap = new PlayTapFilter(card);
+        cardTap->onClick = [&]() {
+            if (openDetailSheet) openDetailSheet(fc);
+        };
+        card->installEventFilter(cardTap);
+        if (mediaSurface) {
+            PlayTapFilter *mediaTap = new PlayTapFilter(mediaSurface);
+            mediaTap->onClick = cardTap->onClick;
+            mediaSurface->installEventFilter(mediaTap);
+        }
+
         fc.widget = card;
         fc.player = cardPlayer;
         fc.video = cardVideo;
-        return fc;
+        fc.commentsList = commentsList;
+        fc.commentInput = commentInput;
+        fc.likeButton = likeBtn;
+        fc.likeCountLabel = likeCount;
+        fc.shareButton = shareBtn;
+        updateLikeUI(fc);
+    };
+
+    openDetailSheet = [&](FeedCard &fc) {
+        // overlay that stays inside the phone frame
+        QWidget *overlay = new QWidget(phone);
+        overlay->setObjectName("detailOverlay");
+        overlay->setStyleSheet("#detailOverlay { background: rgba(0,0,0,120); }");
+        overlay->setGeometry(phone->rect());
+        overlay->raise();
+        overlay->show();
+
+        auto computeCardSize = [&]() {
+            const int margin = 16;
+            int w = static_cast<int>(phone->width() * 0.92);
+            int h = static_cast<int>(phone->height() * 0.9);
+            w = qBound(260, w, phone->width() - margin * 2);
+            h = qBound(340, h, phone->height() - margin * 2);
+            return QSize(w, h);
+        };
+        QSize cardSize = computeCardSize();
+
+        QVBoxLayout *outer = new QVBoxLayout(overlay);
+        outer->setContentsMargins(10, 10, 10, 10);
+
+        QScrollArea *scroll = new QScrollArea(overlay);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setWidgetResizable(true);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        outer->addWidget(scroll, 1);
+
+        QWidget *scrollWrap = new QWidget();
+        scrollWrap->setStyleSheet("background: transparent;");
+        QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWrap);
+        scrollLayout->setContentsMargins(0, 0, 0, 0);
+        scrollLayout->setAlignment(Qt::AlignHCenter);
+
+        QFrame *panel = new QFrame();
+        panel->setObjectName("detailPanel");
+        panel->setStyleSheet("#detailPanel { background:#ffffff; border:2px solid #0b0b0b; border-radius:24px; }");
+        panel->setMinimumSize(cardSize);
+        panel->setMaximumSize(cardSize);
+        panel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        QVBoxLayout *panelLayout = new QVBoxLayout(panel);
+        panelLayout->setSpacing(12);
+        panelLayout->setContentsMargins(16, 16, 16, 16);
+        scrollLayout->addWidget(panel, 0, Qt::AlignHCenter);
+        scrollLayout->addStretch();
+        scroll->setWidget(scrollWrap);
+
+        QWidget *videoWrap = nullptr;
+        QMediaPlayer *modalPlayer = nullptr;
+        const int videoHeight = qMax(180, static_cast<int>(cardSize.height() * 0.45));
+        if (fc.info != nullptr) {
+            QVideoWidget *modalVideo = new QVideoWidget(panel);
+            modalVideo->setMinimumHeight(videoHeight);
+            modalVideo->setMaximumHeight(videoHeight + 40);
+            modalVideo->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#050505;");
+            modalPlayer = new QMediaPlayer(modalVideo);
+            QMediaPlaylist *loop = new QMediaPlaylist(modalPlayer);
+            loop->addMedia(*fc.info->url);
+            loop->setPlaybackMode(QMediaPlaylist::Loop);
+            modalPlayer->setPlaylist(loop);
+            modalPlayer->setVideoOutput(modalVideo);
+            modalPlayer->play();
+            videoWrap = modalVideo;
+        } else {
+            QFrame *ph = new QFrame();
+            ph->setMinimumHeight(videoHeight);
+            ph->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#f5f5f5;");
+            QLabel *txt = new QLabel("No video", ph);
+            txt->setAlignment(Qt::AlignCenter);
+            txt->setStyleSheet("color:#7a7a7a; font-weight:700;");
+            videoWrap = ph;
+        }
+        panelLayout->addWidget(videoWrap);
+
+        QHBoxLayout *userRow = new QHBoxLayout();
+        userRow->setSpacing(10);
+        QLabel *avatar = new QLabel();
+        avatar->setFixedSize(48, 48);
+        avatar->setPixmap(makeAvatarPixmap(fc.account.avatar, 48));
+        userRow->addWidget(avatar);
+        QVBoxLayout *userText = new QVBoxLayout();
+        userText->setContentsMargins(0, 0, 0, 0);
+        userText->setSpacing(0);
+        QLabel *name = new QLabel(fc.account.name);
+        name->setStyleSheet("font-weight:800; font-size:16px;");
+        QLabel *handle = new QLabel(fc.account.handle);
+        handle->setStyleSheet("color:#555;");
+        userText->addWidget(name);
+        userText->addWidget(handle);
+        userRow->addLayout(userText);
+        userRow->addStretch();
+        panelLayout->addLayout(userRow);
+
+        QHBoxLayout *actionRow = new QHBoxLayout();
+        actionRow->setSpacing(12);
+        QToolButton *likeBtn = new QToolButton();
+        likeBtn->setCheckable(true);
+        likeBtn->setChecked(fc.liked);
+        likeBtn->setIcon(makeHeartIcon(fc.liked, 22));
+        likeBtn->setStyleSheet("QToolButton { border:none; padding:8px; }");
+        QLabel *likeCount = new QLabel(QString::number(fc.likeCount));
+        likeCount->setStyleSheet("font-weight:700;");
+        actionRow->addWidget(likeBtn);
+        actionRow->addWidget(likeCount);
+        actionRow->addStretch();
+        QToolButton *shareBtn = new QToolButton();
+        shareBtn->setText("Share");
+        shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:700; }");
+        actionRow->addWidget(shareBtn);
+        panelLayout->addLayout(actionRow);
+
+        QObject::connect(likeBtn, &QToolButton::clicked, overlay, [&, likeBtn, likeCount]() {
+            fc.liked = likeBtn->isChecked();
+            fc.likeCount += fc.liked ? 1 : (fc.likeCount > 0 ? -1 : 0);
+            updateLikeUI(fc);
+            likeBtn->setIcon(makeHeartIcon(fc.liked, 22));
+            likeCount->setText(QString::number(fc.likeCount));
+        });
+
+        QObject::connect(shareBtn, &QToolButton::clicked, overlay, [&]() {
+            showShareSheet(QStringLiteral("Share %1").arg(fc.account.handle), overlay);
+        });
+
+        QLabel *chatTitle = new QLabel("Live chat");
+        chatTitle->setStyleSheet("font-weight:800; font-size:14px;");
+        panelLayout->addWidget(chatTitle);
+
+        QVBoxLayout *chatList = new QVBoxLayout();
+        chatList->setSpacing(10);
+        QStringList sampleTexts = {
+            "This angle looks fire.",
+            "Where was this shot?",
+            "Drop the playlist please.",
+            "I need this energy today."
+        };
+        int chatCount = qMin(4, friends.size());
+        for (int i = 0; i < chatCount; ++i) {
+            const FriendData &chatter = friends.at(i);
+            QWidget *row = new QWidget();
+            QHBoxLayout *rowLayout = new QHBoxLayout(row);
+            rowLayout->setContentsMargins(0, 0, 0, 0);
+            rowLayout->setSpacing(10);
+            QLabel *av = new QLabel();
+            av->setFixedSize(30, 30);
+            av->setPixmap(makeAvatarPixmap(chatter.avatar, 30));
+            rowLayout->addWidget(av);
+            QVBoxLayout *txt = new QVBoxLayout();
+            txt->setContentsMargins(0, 0, 0, 0);
+            txt->setSpacing(0);
+            QLabel *nm = new QLabel(chatter.name);
+            nm->setStyleSheet("font-weight:700;");
+            QLabel *body = new QLabel(sampleTexts.at(i % sampleTexts.size()));
+            body->setWordWrap(true);
+            body->setStyleSheet("color:#333;");
+            txt->addWidget(nm);
+            txt->addWidget(body);
+            rowLayout->addLayout(txt);
+            chatList->addWidget(row);
+        }
+        panelLayout->addLayout(chatList);
+
+        QPushButton *close = new QPushButton("Close");
+        close->setStyleSheet("padding:10px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
+        panelLayout->addWidget(close, 0, Qt::AlignRight);
+
+        outer->setAlignment(scroll, Qt::AlignCenter);
+
+        // keep overlay sized with phone
+        ResizeWatcher *overlayWatcher = new ResizeWatcher(overlay);
+        overlayWatcher->onResize = [=]() mutable {
+            overlay->setGeometry(phone->rect());
+            QSize newSize = computeCardSize();
+            panel->setMinimumSize(newSize);
+            panel->setMaximumSize(newSize);
+        };
+        phone->installEventFilter(overlayWatcher);
+
+        // close handlers
+        auto closeOverlay = [overlay, modalPlayer]() {
+            if (modalPlayer) modalPlayer->stop();
+            overlay->deleteLater();
+        };
+        QObject::connect(close, &QPushButton::clicked, overlay, closeOverlay);
+        PlayTapFilter *overlayTap = new PlayTapFilter(overlay);
+        overlayTap->onClick = closeOverlay;
+        overlay->installEventFilter(overlayTap);
     };
 
     // home page (video feed with friend accounts)
@@ -531,14 +877,18 @@ int main(int argc, char *argv[]) {
     feedLayout->setContentsMargins(0, 0, 0, 0);
     QVector<FeedCard> feedCards;
     feedCards.reserve(static_cast<int>(videos.size()) + 1);
+    auto addCard = [&](TheButtonInfo *info, const FriendData &publisher, bool autoPlay) {
+        feedCards.append(FeedCard());
+        buildPhoneCard(feedCards.last(), info, publisher, autoPlay);
+    };
     if (videos.size() > 0) {
         for (size_t i = 0; i < videos.size(); ++i) {
             const FriendData &publisher = friends.isEmpty() ? myProfile : friends.at(i % friends.size());
             bool autoPlay = (i == 0);
-            feedCards.append(createPhoneCard(&videos.at(i), publisher, autoPlay));
+            addCard(&videos.at(i), publisher, autoPlay);
         }
     } else {
-        feedCards.append(createPhoneCard(nullptr, myProfile, true));
+        addCard(nullptr, myProfile, true);
     }
 
     auto clearGrid = [](QGridLayout *layout) {
@@ -552,15 +902,11 @@ int main(int argc, char *argv[]) {
         }
     };
 
-    auto playCard = [&](int idx) {
-        for (int i = 0; i < feedCards.size(); ++i) {
-            if (feedCards[i].player) {
-                if (i == idx)
-                    feedCards[i].player->play();
-                else
-                    feedCards[i].player->pause();
-            }
-        }
+    refreshFeedGeometry = [&]() {
+        feedLayout->activate();
+        feedContent->setMinimumHeight(feedLayout->sizeHint().height());
+        feedContent->adjustSize();
+        feedArea->updateGeometry();
     };
 
     int lastColumns = -1;
@@ -614,15 +960,6 @@ int main(int argc, char *argv[]) {
     feedArea->viewport()->installEventFilter(feedWatcher);
     rebuildFeed();
 
-    // add play handlers for toggling playback on click
-    for (int i = 0; i < feedCards.size(); ++i) {
-        FeedCard &fc = feedCards[i];
-        if (fc.video) {
-            PlayTapFilter *tap = new PlayTapFilter(fc.video);
-            tap->onClick = [=]() { playCard(i); };
-            fc.video->installEventFilter(tap);
-        }
-    }
     feedArea->setWidget(feedContent);
     homeLayout->addWidget(feedArea);
     contentStack->addWidget(homePage);
