@@ -14,6 +14,7 @@ SOURCES += \
         the_player.cpp \
         friendwindow.cpp \
         profilewindow.cpp \
+        chatwindow.cpp \
         FeeL.cpp
 
 HEADERS += \
@@ -21,6 +22,7 @@ HEADERS += \
     the_player.h \
     friendwindow.h \
     profilewindow.h \
+    chatwindow.h \
     friends_data.h
 
 RESOURCES += \

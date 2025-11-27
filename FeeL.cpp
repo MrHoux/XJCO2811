@@ -43,10 +43,12 @@
 #include <QBitmap>
 #include <QList>
 #include <QHash>
+#include <memory>
 #include <functional>
 #include <QtCore/QString>
 #include <QEvent>
 #include <QMouseEvent>
+#include "chatwindow.h"
 #include "the_button.h"
 #include "friends_data.h"
 
@@ -87,6 +89,28 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
     }
 
     return out;
+}
+
+// draw heart outline/fill for like buttons
+QIcon makeHeartIcon(bool filled, int size = 22) {
+    QPixmap pm(size, size);
+    pm.fill(Qt::transparent);
+    QPainter painter(&pm);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    const qreal w = size;
+    const qreal h = size;
+    QPainterPath heart;
+    heart.moveTo(w * 0.50, h * 0.82);
+    heart.cubicTo(w * 0.15, h * 0.60, w * 0.05, h * 0.28, w * 0.26, h * 0.20);
+    heart.cubicTo(w * 0.44, h * 0.13, w * 0.50, h * 0.26, w * 0.50, h * 0.30);
+    heart.cubicTo(w * 0.50, h * 0.26, w * 0.56, h * 0.13, w * 0.74, h * 0.20);
+    heart.cubicTo(w * 0.95, h * 0.28, w * 0.85, h * 0.60, w * 0.50, h * 0.82);
+
+    painter.setPen(QPen(QColor("#0b0b0b"), 2));
+    if (filled) painter.setBrush(QColor("#e63946"));
+    painter.drawPath(heart);
+    return QIcon(pm);
 }
 
 
@@ -186,11 +210,6 @@ int main(int argc, char *argv[]) {
                    QStringLiteral("Followed by 32k people"), QStringLiteral(":/avatars/avatar7.jpg"), 16, 102, 110)
     };
 
-    for (const auto &f : friends) friendLookup.insert(f.handle, f);
-    currentFriends = friends.mid(0, 3);
-    currentPopular = friends.mid(3);
-    for (const auto &f : currentFriends) followState.insert(f.handle, true);
-
     // helper to create a circular avatar pixmap
     auto makeAvatarPixmap = [](const QString &path, int size) -> QPixmap {
         QPixmap src(path);
@@ -213,86 +232,6 @@ int main(int argc, char *argv[]) {
         out.setClipPath(clipPath);
         out.drawPixmap(0, 0, scaled);
         return result;
-    };
-
-<<<<<<< Updated upstream
-=======
-    QLabel *profileHandleLabel = nullptr;
-    QLabel *profileFollowStatusLabel = nullptr;
-    QLineEdit *searchField = nullptr;
-    ChatWindow *chatPage = nullptr;
-
-    QList<FriendData> currentFriends;
-    QList<FriendData> currentPopular;
-    QHash<QString, FriendData> friendLookup;
-
-    // global follow state registry
-    QHash<QString, bool> followState;
-    QHash<QString, QList<QPushButton*>> followButtons;
-    auto setFollowVisual = [&](QPushButton *btn, bool followed) {
-        if (!btn) return;
-        if (followed) {
-            btn->setText("Followed");
-            btn->setEnabled(false);
-            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
-        } else {
-            btn->setText("Follow");
-            btn->setEnabled(true);
-            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#ffffff; font-weight:600; color:#0b0b0b;");
-        }
-    };
-
-    auto syncFollowButtons = [&](const QString &handle) {
-        const bool followed = followState.value(handle, false);
-        if (followButtons.contains(handle)) {
-            for (QPushButton *b : followButtons.value(handle)) {
-                setFollowVisual(b, followed);
-            }
-        }
-        if (profileHandleLabel && profileHandleLabel->text() == handle && profileFollowStatusLabel) {
-            if (handle == myProfile.handle) {
-                profileFollowStatusLabel->setVisible(false);
-            } else {
-                profileFollowStatusLabel->setVisible(true);
-                profileFollowStatusLabel->setText(followed ? "Followed" : "Follow");
-            }
-        }
-    };
-
-    std::function<void()> refreshFriendsUI = [](){};
-
-    auto takeByHandle = [](QList<FriendData> &list, const QString &handle, FriendData *out) -> bool {
-        for (int i = 0; i < list.size(); ++i) {
-            if (list[i].handle == handle) {
-                if (out) *out = list.takeAt(i);
-                else list.removeAt(i);
-                return true;
-            }
-        }
-        return false;
-    };
-
-    auto handleFollowClick = [&](const QString &handle) {
-        if (handle.isEmpty()) return;
-        const bool now = followState.value(handle, false);
-        const bool next = !now;
-        followState.insert(handle, next);
-
-        FriendData moved;
-        if (next) {
-            if (takeByHandle(currentPopular, handle, &moved)) {
-                currentFriends.prepend(moved);
-            } else if (friendLookup.contains(handle) && !takeByHandle(currentFriends, handle, nullptr)) {
-                currentFriends.prepend(friendLookup.value(handle));
-            }
-        } else {
-            if (takeByHandle(currentFriends, handle, &moved)) {
-                currentPopular.prepend(moved);
-            }
-        }
-
-        syncFollowButtons(handle);
-        refreshFriendsUI();
     };
 
     auto showShareSheet = [&](const QString &title, QWidget *parent) {
@@ -376,7 +315,93 @@ int main(int argc, char *argv[]) {
         dialog.exec();
     };
 
->>>>>>> Stashed changes
+    QLabel *profileHandleLabel = nullptr;
+    QLabel *profileFollowStatusLabel = nullptr;
+    QLineEdit *searchField = nullptr;
+    ChatWindow *chatPage = nullptr;
+    QWidget *activeOverlay = nullptr;
+
+    QList<FriendData> currentFriends;
+    QList<FriendData> currentPopular;
+    QHash<QString, FriendData> friendLookup;
+
+    // global follow state registry
+    QHash<QString, bool> followState;
+    QHash<QString, QList<QPointer<QPushButton>>> followButtons;
+    auto setFollowVisual = [&](QPushButton *btn, bool followed) {
+        if (!btn) return;
+        btn->setEnabled(true);
+        if (followed) {
+            btn->setText("Followed");
+            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
+        } else {
+            btn->setText("Follow");
+            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#ffffff; font-weight:600; color:#0b0b0b;");
+        }
+    };
+
+    auto registerFollowButton = [&](const QString &handle, QPushButton *btn) {
+        followButtons[handle].append(QPointer<QPushButton>(btn));
+    };
+
+    auto syncFollowButtons = [&](const QString &handle) {
+        const bool followed = followState.value(handle, false);
+        if (followButtons.contains(handle)) {
+            QList<QPointer<QPushButton>> list = followButtons.value(handle);
+            for (QPointer<QPushButton> b : list) {
+                if (b) setFollowVisual(b, followed);
+            }
+            followButtons[handle] = list;
+        }
+        if (profileHandleLabel && profileHandleLabel->text() == handle && profileFollowStatusLabel) {
+            if (handle == myProfile.handle) {
+                profileFollowStatusLabel->setVisible(false);
+            } else {
+                profileFollowStatusLabel->setVisible(true);
+                profileFollowStatusLabel->setText(followed ? "Followed" : "Follow");
+            }
+        }
+    };
+
+    std::function<void()> refreshFriendsUI = [](){};
+
+    auto takeByHandle = [](QList<FriendData> &list, const QString &handle, FriendData *out) -> bool {
+        for (int i = 0; i < list.size(); ++i) {
+            if (list[i].handle == handle) {
+                if (out) *out = list.takeAt(i);
+                else list.removeAt(i);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto handleFollowClick = [&](const QString &handle) {
+        if (handle.isEmpty()) return;
+        const bool now = followState.value(handle, false);
+        const bool next = !now;
+        followState.insert(handle, next);
+        FriendData moved;
+        if (next) {
+            if (takeByHandle(currentPopular, handle, &moved)) {
+                currentFriends.prepend(moved);
+            } else if (friendLookup.contains(handle) && !takeByHandle(currentFriends, handle, nullptr)) {
+                currentFriends.prepend(friendLookup.value(handle));
+            }
+        } else {
+            if (takeByHandle(currentFriends, handle, &moved)) {
+                currentPopular.prepend(moved);
+            }
+        }
+
+        syncFollowButtons(handle);
+        refreshFriendsUI();
+    };
+
+    for (const auto &f : friends) friendLookup.insert(f.handle, f);
+    currentFriends = friends.mid(0, 3);
+    currentPopular = friends.mid(3);
+    for (const auto &f : currentFriends) followState.insert(f.handle, true);
     // profile page (populated on selection)
     QWidget *profilePage = new QWidget();
     QVBoxLayout *profileLayout = new QVBoxLayout(profilePage);
@@ -401,14 +426,10 @@ int main(int argc, char *argv[]) {
     profileHandle->setStyleSheet("font-size:14px; color:#666;");
     profileLayout->addWidget(profileHandle, 0, Qt::AlignHCenter);
 
-<<<<<<< Updated upstream
-=======
     QLabel *profileFollowStatus = new QLabel();
     profileFollowStatusLabel = profileFollowStatus;
     profileFollowStatus->setStyleSheet("font-size:13px; color:#444; border:2px solid #0b0b0b; border-radius:12px; padding:6px 10px; background:#ffffff;");
     profileLayout->addWidget(profileFollowStatus, 0, Qt::AlignHCenter);
-
->>>>>>> Stashed changes
     QHBoxLayout *statsRow = new QHBoxLayout();
     statsRow->setSpacing(28);
     auto statWidget = [](QLabel **valueLabel, const QString &label) {
@@ -443,6 +464,9 @@ int main(int argc, char *argv[]) {
     QPushButton *shareProfile = new QPushButton("Share Profile");
     shareProfile->setStyleSheet("padding:12px 18px; border-radius:18px; background:#2f2f2f; color:#ffffff; font-weight:700;");
     profileLayout->addWidget(shareProfile, 0, Qt::AlignHCenter);
+    QObject::connect(shareProfile, &QPushButton::clicked, &window, [&]() {
+        showShareSheet(QStringLiteral("Share %1").arg(myProfile.handle), &window);
+    });
 
     QLabel *privacyNote = new QLabel("Your Posts are private and ephemeral unless shared.");
     privacyNote->setStyleSheet("font-size:12px; color:#6a6a6a;");
@@ -475,8 +499,6 @@ int main(int argc, char *argv[]) {
         }
         profileName->setText(f.name);
         profileHandle->setText(f.handle);
-<<<<<<< Updated upstream
-=======
         if (f.name == myProfile.name) {
             profileFollowStatus->setText("This is you");
             profileFollowStatus->setVisible(false);
@@ -485,7 +507,6 @@ int main(int argc, char *argv[]) {
             profileFollowStatus->setVisible(true);
             profileFollowStatus->setText(followed ? "Followed" : "Follow");
         }
->>>>>>> Stashed changes
         // update stats
         berealValue->setText(QString::number(f.bereals));
         friendsValue->setText(QString::number(f.friends));
@@ -532,19 +553,64 @@ int main(int argc, char *argv[]) {
         }
     };
 
+    class DismissFilter : public QObject {
+    public:
+        QWidget *panel = nullptr;
+        std::function<void()> onDismiss;
+        explicit DismissFilter(QObject *parent = nullptr) : QObject(parent) {}
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            if (event->type() == QEvent::MouseButtonPress) {
+                if (!panel) return QObject::eventFilter(obj, event);
+                auto *me = static_cast<QMouseEvent*>(event);
+                if (!panel->geometry().contains(me->pos())) {
+                    if (onDismiss) onDismiss();
+                    return true;
+                }
+            }
+            return QObject::eventFilter(obj, event);
+        }
+    };
+
     struct FeedCard {
         QWidget *widget = nullptr;
         QMediaPlayer *player = nullptr;
         QVideoWidget *video = nullptr;
+        QToolButton *likeButton = nullptr;
+        QLabel *likeCountLabel = nullptr;
+        std::shared_ptr<int> likeValue;
+        std::shared_ptr<bool> likedValue;
+        TheButtonInfo *info = nullptr;
+        FriendData account;
+    };
+
+    auto updateLikeUI = [&](FeedCard &fc) {
+        if (fc.likeButton) {
+            const bool liked = fc.likedValue ? *fc.likedValue : false;
+            fc.likeButton->setChecked(liked);
+            fc.likeButton->setIcon(makeHeartIcon(liked, 22));
+        }
+        if (fc.likeCountLabel) {
+            const int count = fc.likeValue ? *fc.likeValue : 0;
+            fc.likeCountLabel->setText(QString::number(count));
+        }
     };
 
     // home page cards showing friend accounts as publishers
+    std::function<void(FeedCard)> openDetailSheet;
+
     auto createPhoneCard = [&](TheButtonInfo* info, const FriendData &account, bool autoPlay) -> FeedCard {
         QFrame *card = new QFrame();
         card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #101010; border-radius:28px; }");
         QVBoxLayout *cardLayout = new QVBoxLayout(card);
         cardLayout->setSpacing(12);
         cardLayout->setContentsMargins(18, 18, 18, 18);
+
+        FeedCard fc;
+        fc.info = info;
+        fc.account = account;
+        fc.likeValue = std::make_shared<int>(120 + account.bereals * 2 + account.friends);
+        fc.likedValue = std::make_shared<bool>(false);
 
         QWidget *mediaSurface = nullptr;
         QMediaPlayer *cardPlayer = nullptr;
@@ -610,17 +676,12 @@ int main(int argc, char *argv[]) {
         handleBtn->setStyleSheet("text-align:left; font-size:13px; color:#5a5a5a;");
         QObject::connect(handleBtn, &QPushButton::clicked, &window, goProfile);
         profileText->addWidget(handleBtn);
-<<<<<<< Updated upstream
-        QPushButton *followButton = new QPushButton("FOLLOW");
-        followButton->setStyleSheet("QPushButton { border:2px solid #101010; border-radius:16px; padding:4px 16px; background:#ffffff; font-weight:600; }");
-=======
         QPushButton *followButton = new QPushButton();
-        followButtons[account.handle].append(followButton);
+        registerFollowButton(account.handle, followButton);
         setFollowVisual(followButton, followState.value(account.handle, false));
         QObject::connect(followButton, &QPushButton::clicked, &window, [=]() {
             handleFollowClick(account.handle);
         });
->>>>>>> Stashed changes
         profileRow->addWidget(avatarBtn);
         profileRow->addLayout(profileText);
         profileRow->addStretch();
@@ -633,31 +694,32 @@ int main(int argc, char *argv[]) {
         cardLayout->addWidget(line);
 
         QHBoxLayout *statsRow = new QHBoxLayout();
-        statsRow->setSpacing(16);
-        statsRow->addWidget(new QLabel("LIKE 123"));
-        statsRow->addWidget(new QLabel("CHAT 45"));
+        statsRow->setSpacing(10);
+        QToolButton *likeBtn = new QToolButton();
+        likeBtn->setCheckable(true);
+        likeBtn->setAutoRaise(true);
+        likeBtn->setIcon(makeHeartIcon(false, 22));
+        likeBtn->setStyleSheet("QToolButton { border:none; padding:6px; }");
+        QLabel *likeCount = new QLabel(QString::number(*fc.likeValue));
+        likeCount->setStyleSheet("font-weight:700; color:#0b0b0b;");
+        statsRow->addWidget(likeBtn);
+        statsRow->addWidget(likeCount);
         statsRow->addStretch();
-        QLabel *shareIcon = new QLabel("SHARE");
-        statsRow->addWidget(shareIcon);
+        QToolButton *shareBtn = new QToolButton();
+        shareBtn->setText("Share");
+        shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #101010; border-radius:14px; background:#ffffff; font-weight:700; }");
+        statsRow->addWidget(shareBtn);
         cardLayout->addLayout(statsRow);
 
         QFrame *commentLine = new QFrame();
         commentLine->setFrameShape(QFrame::HLine);
-        commentLine->setStyleSheet("color:#cfcfcf;");
+        commentLine->setStyleSheet("color:#e4e4e4;");
         cardLayout->addWidget(commentLine);
 
         QVBoxLayout *commentSection = new QVBoxLayout();
         commentSection->setSpacing(8);
         QLabel *commentLabel = new QLabel("Comments");
-<<<<<<< Updated upstream
-        commentLabel->setStyleSheet("font-weight:600; color:#0b0b0b;");
-=======
         commentLabel->setStyleSheet("font-weight:700; color:#0b0b0b;");
-        QFrame *commentLine = new QFrame();
-        commentLine->setFrameShape(QFrame::HLine);
-        commentLine->setStyleSheet("color:#e4e4e4;");
-        commentSection->addWidget(commentLine);
->>>>>>> Stashed changes
         commentSection->addWidget(commentLabel);
 
         QVBoxLayout *commentsList = new QVBoxLayout();
@@ -707,11 +769,203 @@ int main(int argc, char *argv[]) {
 
         cardLayout->addLayout(commentSection);
 
-        FeedCard fc;
         fc.widget = card;
         fc.player = cardPlayer;
         fc.video = cardVideo;
+        fc.likeButton = likeBtn;
+        fc.likeCountLabel = likeCount;
+        updateLikeUI(fc);
+
+        QObject::connect(likeBtn, &QToolButton::clicked, &window, [=]() mutable {
+            FeedCard fcCopy = fc;
+            if (fcCopy.likedValue) *fcCopy.likedValue = likeBtn->isChecked();
+            if (fcCopy.likeValue) {
+                int v = *fcCopy.likeValue;
+                v += (*fcCopy.likedValue) ? 1 : (v > 0 ? -1 : 0);
+                *fcCopy.likeValue = qMax(0, v);
+            }
+            updateLikeUI(fcCopy);
+        });
+        QObject::connect(shareBtn, &QToolButton::clicked, &window, [&, account]() {
+            showShareSheet(QStringLiteral("Share %1").arg(account.handle), &window);
+        });
+
+        PlayTapFilter *cardTap = new PlayTapFilter(card);
+        cardTap->onClick = [=]() mutable {
+            if (!openDetailSheet) return;
+            openDetailSheet(fc);
+        };
+        card->installEventFilter(cardTap);
+        if (mediaSurface) {
+            PlayTapFilter *mediaTap = new PlayTapFilter(mediaSurface);
+            mediaTap->onClick = cardTap->onClick;
+            mediaSurface->installEventFilter(mediaTap);
+        }
         return fc;
+    };
+
+    openDetailSheet = [&](FeedCard fc) {
+        if (activeOverlay) {
+            activeOverlay->deleteLater();
+            activeOverlay = nullptr;
+        }
+        QWidget *overlay = new QWidget(phone);
+        overlay->setObjectName("detailOverlay");
+        overlay->setStyleSheet("#detailOverlay { background: rgba(0,0,0,120); }");
+        overlay->setGeometry(phone->rect());
+        overlay->raise();
+        activeOverlay = overlay;
+
+        const int w = static_cast<int>(phone->width() * 0.92);
+        const int h = static_cast<int>(phone->height() * 0.9);
+
+        QVBoxLayout *overlayLayout = new QVBoxLayout(overlay);
+        overlayLayout->setContentsMargins(10, 10, 10, 10);
+
+        QFrame *panel = new QFrame();
+        panel->setObjectName("detailPanel");
+        panel->setStyleSheet("#detailPanel { background:#ffffff; border:2px solid #0b0b0b; border-radius:24px; }");
+        panel->setFixedSize(w, h);
+        QVBoxLayout *panelLayout = new QVBoxLayout(panel);
+        panelLayout->setSpacing(12);
+        panelLayout->setContentsMargins(16, 16, 16, 16);
+
+        QWidget *videoWrap = nullptr;
+        QMediaPlayer *modalPlayer = nullptr;
+        if (fc.info != nullptr) {
+            QVideoWidget *modalVideo = new QVideoWidget(panel);
+            modalVideo->setMinimumHeight(static_cast<int>(h * 0.45));
+            modalVideo->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#050505;");
+            modalPlayer = new QMediaPlayer(modalVideo);
+            QMediaPlaylist *loop = new QMediaPlaylist(modalPlayer);
+            loop->addMedia(*fc.info->url);
+            loop->setPlaybackMode(QMediaPlaylist::Loop);
+            modalPlayer->setPlaylist(loop);
+            modalPlayer->setVideoOutput(modalVideo);
+            modalPlayer->play();
+            videoWrap = modalVideo;
+        } else {
+            QFrame *ph = new QFrame();
+            ph->setMinimumHeight(static_cast<int>(h * 0.4));
+            ph->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#f5f5f5;");
+            QLabel *txt = new QLabel("No video", ph);
+            txt->setAlignment(Qt::AlignCenter);
+            txt->setStyleSheet("color:#7a7a7a; font-weight:700;");
+            videoWrap = ph;
+        }
+        panelLayout->addWidget(videoWrap);
+
+        QHBoxLayout *userRow = new QHBoxLayout();
+        userRow->setSpacing(10);
+        QLabel *avatar = new QLabel();
+        avatar->setFixedSize(48, 48);
+        avatar->setPixmap(makeAvatarPixmap(fc.account.avatar, 48));
+        userRow->addWidget(avatar);
+        QVBoxLayout *userText = new QVBoxLayout();
+        userText->setContentsMargins(0, 0, 0, 0);
+        userText->setSpacing(0);
+        QLabel *name = new QLabel(fc.account.name);
+        name->setStyleSheet("font-weight:800; font-size:16px;");
+        QLabel *handle = new QLabel(fc.account.handle);
+        handle->setStyleSheet("color:#555;");
+        userText->addWidget(name);
+        userText->addWidget(handle);
+        userRow->addLayout(userText);
+        userRow->addStretch();
+        panelLayout->addLayout(userRow);
+
+        QHBoxLayout *actionRow = new QHBoxLayout();
+        actionRow->setSpacing(12);
+        QToolButton *likeBtn = new QToolButton();
+        likeBtn->setCheckable(true);
+        likeBtn->setChecked(fc.likedValue ? *fc.likedValue : false);
+        likeBtn->setIcon(makeHeartIcon(fc.likedValue ? *fc.likedValue : false, 22));
+        likeBtn->setStyleSheet("QToolButton { border:none; padding:8px; }");
+        QLabel *likeCount = new QLabel(QString::number(fc.likeValue ? *fc.likeValue : 0));
+        likeCount->setStyleSheet("font-weight:700;");
+        actionRow->addWidget(likeBtn);
+        actionRow->addWidget(likeCount);
+        actionRow->addStretch();
+        QToolButton *shareBtn = new QToolButton();
+        shareBtn->setText("Share");
+        shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:700; }");
+        actionRow->addWidget(shareBtn);
+        panelLayout->addLayout(actionRow);
+
+        QLabel *chatTitle = new QLabel("Live chat");
+        chatTitle->setStyleSheet("font-weight:800; font-size:14px;");
+        panelLayout->addWidget(chatTitle);
+
+        QVBoxLayout *chatList = new QVBoxLayout();
+        chatList->setSpacing(10);
+        QStringList sampleTexts = {
+            "This angle looks fire.",
+            "Where was this shot?",
+            "Drop the playlist please.",
+            "I need this energy today."
+        };
+        int chatCount = qMin(4, friends.size());
+        for (int i = 0; i < chatCount; ++i) {
+            const FriendData &chatter = friends.at(i);
+            QWidget *row = new QWidget();
+            QHBoxLayout *rowLayout = new QHBoxLayout(row);
+            rowLayout->setContentsMargins(0, 0, 0, 0);
+            rowLayout->setSpacing(10);
+            QLabel *av = new QLabel();
+            av->setFixedSize(30, 30);
+            av->setPixmap(makeAvatarPixmap(chatter.avatar, 30));
+            rowLayout->addWidget(av);
+            QVBoxLayout *txt = new QVBoxLayout();
+            txt->setContentsMargins(0, 0, 0, 0);
+            txt->setSpacing(0);
+            QLabel *nm = new QLabel(chatter.name);
+            nm->setStyleSheet("font-weight:700;");
+            QLabel *body = new QLabel(sampleTexts.at(i % sampleTexts.size()));
+            body->setWordWrap(true);
+            body->setStyleSheet("color:#333;");
+            txt->addWidget(nm);
+            txt->addWidget(body);
+            rowLayout->addLayout(txt);
+            chatList->addWidget(row);
+        }
+        panelLayout->addLayout(chatList);
+
+        QHBoxLayout *closeRow = new QHBoxLayout();
+        closeRow->addStretch();
+        QPushButton *closeBtn = new QPushButton("Close");
+        closeBtn->setStyleSheet("padding:10px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
+        closeRow->addWidget(closeBtn);
+        panelLayout->addLayout(closeRow);
+
+        overlayLayout->addWidget(panel, 0, Qt::AlignCenter);
+
+        auto closeOverlay = [overlay, modalPlayer, &activeOverlay]() {
+            if (modalPlayer) modalPlayer->stop();
+            overlay->deleteLater();
+            if (activeOverlay == overlay) activeOverlay = nullptr;
+        };
+        QObject::connect(closeBtn, &QPushButton::clicked, overlay, closeOverlay);
+        DismissFilter *overlayTap = new DismissFilter(overlay);
+        overlayTap->panel = panel;
+        overlayTap->onDismiss = closeOverlay;
+        overlay->installEventFilter(overlayTap);
+
+        QObject::connect(likeBtn, &QToolButton::clicked, overlay, [=, &fc]() mutable {
+            if (fc.likedValue) *fc.likedValue = likeBtn->isChecked();
+            if (fc.likeValue) {
+                int v = *fc.likeValue;
+                v += (*fc.likedValue) ? 1 : (v > 0 ? -1 : 0);
+                *fc.likeValue = qMax(0, v);
+            }
+            updateLikeUI(fc);
+            likeBtn->setIcon(makeHeartIcon(fc.likedValue ? *fc.likedValue : false, 22));
+            likeCount->setText(QString::number(fc.likeValue ? *fc.likeValue : 0));
+        });
+        QObject::connect(shareBtn, &QToolButton::clicked, overlay, [&]() {
+            showShareSheet(QStringLiteral("Share %1").arg(fc.account.handle), overlay);
+        });
+
+        overlay->show();
     };
 
     // home page (video feed with friend accounts)
@@ -874,10 +1128,6 @@ int main(int argc, char *argv[]) {
         }
     };
 
-<<<<<<< Updated upstream
-    QList<FriendData> friendSubset = friends.mid(0, 3);
-    QList<FriendData> popularSubset = friends.mid(3); // disjoint from friends
-=======
     ChatWindow *chatPageInst = new ChatWindow();
     chatPage = chatPageInst;
     chatPageInst->setThreads(currentFriends);
@@ -885,12 +1135,12 @@ int main(int argc, char *argv[]) {
         applyProfile(f);
         contentStack->setCurrentWidget(profilePage);
     });
->>>>>>> Stashed changes
 
     auto renderCards = [&](const QList<FriendData> &list, QVBoxLayout *targetLayout, const QString &filter, bool isFriendList) {
         clearLayoutWithWidgets(targetLayout);
         const bool hasFilter = !filter.trimmed().isEmpty();
         int added = 0;
+        int idxCounter = 0;
         for (const auto &f : list) {
             if (hasFilter) {
                 const QString text = filter.trimmed();
@@ -900,6 +1150,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             ++added;
+            int idx = idxCounter++;
             QFrame *card = new QFrame();
             card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:18px; }");
             QHBoxLayout *cardLayout = new QHBoxLayout(card);
@@ -927,25 +1178,17 @@ int main(int argc, char *argv[]) {
             QLabel *handleLbl = new QLabel(f.handle);
             handleLbl->setStyleSheet("font-size:13px; color:#5a5a5a;");
             infoColumn->addWidget(handleLbl);
-<<<<<<< Updated upstream
-            QLabel *followersLbl = new QLabel(f.followers);
-            followersLbl->setStyleSheet("font-size:12px; color:#7a7a7a;");
-            infoColumn->addWidget(followersLbl);
-=======
->>>>>>> Stashed changes
             cardLayout->addLayout(infoColumn);
             cardLayout->addStretch();
 
             QPushButton *followBtn = new QPushButton();
-            followButtons[f.handle].append(followBtn);
+            registerFollowButton(f.handle, followBtn);
             setFollowVisual(followBtn, followState.value(f.handle, isFriendList));
             if (isFriendList) followState.insert(f.handle, true);
             QObject::connect(followBtn, &QPushButton::clicked, &window, [=]() {
                 handleFollowClick(f.handle);
             });
             cardLayout->addWidget(followBtn);
-<<<<<<< Updated upstream
-=======
             if (isFriendList) {
                 QPushButton *chatBtn = new QPushButton("Chat");
                 chatBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
@@ -955,7 +1198,6 @@ int main(int argc, char *argv[]) {
                     contentStack->setCurrentWidget(chatPage);
                 });
             }
->>>>>>> Stashed changes
 
             targetLayout->addWidget(card);
 
@@ -988,6 +1230,7 @@ int main(int argc, char *argv[]) {
     friendsArea->setWidget(friendsListWrap);
     friendsLayout->addWidget(friendsArea);
     contentStack->addWidget(friendsPage);
+    contentStack->addWidget(chatPage);
 
     QObject::connect(search, &QLineEdit::textChanged, &window, rebuildFriendsList);
 
@@ -1014,6 +1257,10 @@ int main(int argc, char *argv[]) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 applyProfile(myProfile);
                 contentStack->setCurrentWidget(profilePage);
+            });
+        } else if (item == "CHAT") {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                contentStack->setCurrentWidget(chatPage);
             });
         } else if (item == "HOME") {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
