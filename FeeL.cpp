@@ -42,6 +42,7 @@
 #include <QPainterPath>
 #include <QBitmap>
 #include <QList>
+#include <QHash>
 #include <functional>
 #include <QtCore/QString>
 #include <QEvent>
@@ -185,6 +186,11 @@ int main(int argc, char *argv[]) {
                    QStringLiteral("Followed by 32k people"), QStringLiteral(":/avatars/avatar7.jpg"), 16, 102, 110)
     };
 
+    for (const auto &f : friends) friendLookup.insert(f.handle, f);
+    currentFriends = friends.mid(0, 3);
+    currentPopular = friends.mid(3);
+    for (const auto &f : currentFriends) followState.insert(f.handle, true);
+
     // helper to create a circular avatar pixmap
     auto makeAvatarPixmap = [](const QString &path, int size) -> QPixmap {
         QPixmap src(path);
@@ -209,6 +215,168 @@ int main(int argc, char *argv[]) {
         return result;
     };
 
+<<<<<<< Updated upstream
+=======
+    QLabel *profileHandleLabel = nullptr;
+    QLabel *profileFollowStatusLabel = nullptr;
+    QLineEdit *searchField = nullptr;
+    ChatWindow *chatPage = nullptr;
+
+    QList<FriendData> currentFriends;
+    QList<FriendData> currentPopular;
+    QHash<QString, FriendData> friendLookup;
+
+    // global follow state registry
+    QHash<QString, bool> followState;
+    QHash<QString, QList<QPushButton*>> followButtons;
+    auto setFollowVisual = [&](QPushButton *btn, bool followed) {
+        if (!btn) return;
+        if (followed) {
+            btn->setText("Followed");
+            btn->setEnabled(false);
+            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
+        } else {
+            btn->setText("Follow");
+            btn->setEnabled(true);
+            btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#ffffff; font-weight:600; color:#0b0b0b;");
+        }
+    };
+
+    auto syncFollowButtons = [&](const QString &handle) {
+        const bool followed = followState.value(handle, false);
+        if (followButtons.contains(handle)) {
+            for (QPushButton *b : followButtons.value(handle)) {
+                setFollowVisual(b, followed);
+            }
+        }
+        if (profileHandleLabel && profileHandleLabel->text() == handle && profileFollowStatusLabel) {
+            if (handle == myProfile.handle) {
+                profileFollowStatusLabel->setVisible(false);
+            } else {
+                profileFollowStatusLabel->setVisible(true);
+                profileFollowStatusLabel->setText(followed ? "Followed" : "Follow");
+            }
+        }
+    };
+
+    std::function<void()> refreshFriendsUI = [](){};
+
+    auto takeByHandle = [](QList<FriendData> &list, const QString &handle, FriendData *out) -> bool {
+        for (int i = 0; i < list.size(); ++i) {
+            if (list[i].handle == handle) {
+                if (out) *out = list.takeAt(i);
+                else list.removeAt(i);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto handleFollowClick = [&](const QString &handle) {
+        if (handle.isEmpty()) return;
+        const bool now = followState.value(handle, false);
+        const bool next = !now;
+        followState.insert(handle, next);
+
+        FriendData moved;
+        if (next) {
+            if (takeByHandle(currentPopular, handle, &moved)) {
+                currentFriends.prepend(moved);
+            } else if (friendLookup.contains(handle) && !takeByHandle(currentFriends, handle, nullptr)) {
+                currentFriends.prepend(friendLookup.value(handle));
+            }
+        } else {
+            if (takeByHandle(currentFriends, handle, &moved)) {
+                currentPopular.prepend(moved);
+            }
+        }
+
+        syncFollowButtons(handle);
+        refreshFriendsUI();
+    };
+
+    auto showShareSheet = [&](const QString &title, QWidget *parent) {
+        QDialog dialog(parent);
+        dialog.setModal(true);
+        dialog.setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+        dialog.setAttribute(Qt::WA_TranslucentBackground);
+        QVBoxLayout *outer = new QVBoxLayout(&dialog);
+        outer->setContentsMargins(24, 24, 24, 24);
+
+        QFrame *sheet = new QFrame();
+        sheet->setObjectName("shareSheet");
+        sheet->setStyleSheet("#shareSheet { background:#ffffff; border:2px solid #0b0b0b; border-radius:22px; }");
+        QVBoxLayout *sheetLayout = new QVBoxLayout(sheet);
+        sheetLayout->setSpacing(12);
+        sheetLayout->setContentsMargins(18, 18, 18, 18);
+
+        QLabel *titleLbl = new QLabel(title);
+        titleLbl->setStyleSheet("font-weight:800; font-size:16px;");
+        sheetLayout->addWidget(titleLbl);
+
+        QLabel *subtitle = new QLabel("Send to apps or drop inside friends.");
+        subtitle->setStyleSheet("color:#6a6a6a;");
+        sheetLayout->addWidget(subtitle);
+
+        QStringList apps = {"Copy link", "Instagram", "Messages", "Save to board"};
+        QHBoxLayout *appRow = new QHBoxLayout();
+        appRow->setSpacing(8);
+        for (const auto &app : apps) {
+            QPushButton *chip = new QPushButton(app);
+            chip->setStyleSheet("padding:8px 12px; border:1px solid #0b0b0b; border-radius:12px; background:#f7f7f7; font-weight:600;");
+            appRow->addWidget(chip);
+        }
+        appRow->addStretch();
+        sheetLayout->addLayout(appRow);
+
+        QLabel *friendsTitle = new QLabel("Friends in FeeL");
+        friendsTitle->setStyleSheet("font-weight:700; font-size:14px; margin-top:6px;");
+        sheetLayout->addWidget(friendsTitle);
+
+        QVBoxLayout *friendRows = new QVBoxLayout();
+        friendRows->setSpacing(8);
+        const int friendSample = qMin(4, friends.size());
+        for (int i = 0; i < friendSample; ++i) {
+            const FriendData &f = friends.at(i);
+            QWidget *row = new QWidget();
+            QHBoxLayout *rowLayout = new QHBoxLayout(row);
+            rowLayout->setContentsMargins(0, 0, 0, 0);
+            rowLayout->setSpacing(10);
+
+            QLabel *av = new QLabel();
+            av->setFixedSize(36, 36);
+            av->setPixmap(makeAvatarPixmap(f.avatar, 36));
+            rowLayout->addWidget(av);
+
+            QVBoxLayout *text = new QVBoxLayout();
+            text->setContentsMargins(0, 0, 0, 0);
+            text->setSpacing(0);
+            QLabel *name = new QLabel(f.name);
+            name->setStyleSheet("font-weight:700;");
+            QLabel *handle = new QLabel(f.handle);
+            handle->setStyleSheet("color:#555;");
+            text->addWidget(name);
+            text->addWidget(handle);
+            rowLayout->addLayout(text);
+            rowLayout->addStretch();
+
+            QPushButton *send = new QPushButton("Send");
+            send->setStyleSheet("padding:6px 12px; border:1px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
+            rowLayout->addWidget(send);
+            friendRows->addWidget(row);
+        }
+        sheetLayout->addLayout(friendRows);
+
+        QPushButton *close = new QPushButton("Close");
+        close->setStyleSheet("padding:8px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
+        QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
+        sheetLayout->addWidget(close, 0, Qt::AlignRight);
+
+        outer->addWidget(sheet);
+        dialog.exec();
+    };
+
+>>>>>>> Stashed changes
     // profile page (populated on selection)
     QWidget *profilePage = new QWidget();
     QVBoxLayout *profileLayout = new QVBoxLayout(profilePage);
@@ -229,9 +397,18 @@ int main(int argc, char *argv[]) {
     profileLayout->addWidget(profileName, 0, Qt::AlignHCenter);
 
     QLabel *profileHandle = new QLabel("@guest");
+    profileHandleLabel = profileHandle;
     profileHandle->setStyleSheet("font-size:14px; color:#666;");
     profileLayout->addWidget(profileHandle, 0, Qt::AlignHCenter);
 
+<<<<<<< Updated upstream
+=======
+    QLabel *profileFollowStatus = new QLabel();
+    profileFollowStatusLabel = profileFollowStatus;
+    profileFollowStatus->setStyleSheet("font-size:13px; color:#444; border:2px solid #0b0b0b; border-radius:12px; padding:6px 10px; background:#ffffff;");
+    profileLayout->addWidget(profileFollowStatus, 0, Qt::AlignHCenter);
+
+>>>>>>> Stashed changes
     QHBoxLayout *statsRow = new QHBoxLayout();
     statsRow->setSpacing(28);
     auto statWidget = [](QLabel **valueLabel, const QString &label) {
@@ -298,6 +475,17 @@ int main(int argc, char *argv[]) {
         }
         profileName->setText(f.name);
         profileHandle->setText(f.handle);
+<<<<<<< Updated upstream
+=======
+        if (f.name == myProfile.name) {
+            profileFollowStatus->setText("This is you");
+            profileFollowStatus->setVisible(false);
+        } else {
+            const bool followed = followState.value(f.handle, false);
+            profileFollowStatus->setVisible(true);
+            profileFollowStatus->setText(followed ? "Followed" : "Follow");
+        }
+>>>>>>> Stashed changes
         // update stats
         berealValue->setText(QString::number(f.bereals));
         friendsValue->setText(QString::number(f.friends));
@@ -422,8 +610,17 @@ int main(int argc, char *argv[]) {
         handleBtn->setStyleSheet("text-align:left; font-size:13px; color:#5a5a5a;");
         QObject::connect(handleBtn, &QPushButton::clicked, &window, goProfile);
         profileText->addWidget(handleBtn);
+<<<<<<< Updated upstream
         QPushButton *followButton = new QPushButton("FOLLOW");
         followButton->setStyleSheet("QPushButton { border:2px solid #101010; border-radius:16px; padding:4px 16px; background:#ffffff; font-weight:600; }");
+=======
+        QPushButton *followButton = new QPushButton();
+        followButtons[account.handle].append(followButton);
+        setFollowVisual(followButton, followState.value(account.handle, false));
+        QObject::connect(followButton, &QPushButton::clicked, &window, [=]() {
+            handleFollowClick(account.handle);
+        });
+>>>>>>> Stashed changes
         profileRow->addWidget(avatarBtn);
         profileRow->addLayout(profileText);
         profileRow->addStretch();
@@ -452,7 +649,15 @@ int main(int argc, char *argv[]) {
         QVBoxLayout *commentSection = new QVBoxLayout();
         commentSection->setSpacing(8);
         QLabel *commentLabel = new QLabel("Comments");
+<<<<<<< Updated upstream
         commentLabel->setStyleSheet("font-weight:600; color:#0b0b0b;");
+=======
+        commentLabel->setStyleSheet("font-weight:700; color:#0b0b0b;");
+        QFrame *commentLine = new QFrame();
+        commentLine->setFrameShape(QFrame::HLine);
+        commentLine->setStyleSheet("color:#e4e4e4;");
+        commentSection->addWidget(commentLine);
+>>>>>>> Stashed changes
         commentSection->addWidget(commentLabel);
 
         QVBoxLayout *commentsList = new QVBoxLayout();
@@ -633,6 +838,7 @@ int main(int argc, char *argv[]) {
     friendsListLayout->setSpacing(10);
 
     QLineEdit *search = new QLineEdit();
+    searchField = search;
     search->setPlaceholderText("Add or search friends");
     search->setStyleSheet("padding:10px 12px; border:2px solid #101010; border-radius:16px; background:#f2f2f2;");
 
@@ -668,8 +874,18 @@ int main(int argc, char *argv[]) {
         }
     };
 
+<<<<<<< Updated upstream
     QList<FriendData> friendSubset = friends.mid(0, 3);
     QList<FriendData> popularSubset = friends.mid(3); // disjoint from friends
+=======
+    ChatWindow *chatPageInst = new ChatWindow();
+    chatPage = chatPageInst;
+    chatPageInst->setThreads(currentFriends);
+    QObject::connect(chatPageInst, &ChatWindow::showProfile, &window, [=](const FriendData &f) {
+        applyProfile(f);
+        contentStack->setCurrentWidget(profilePage);
+    });
+>>>>>>> Stashed changes
 
     auto renderCards = [&](const QList<FriendData> &list, QVBoxLayout *targetLayout, const QString &filter, bool isFriendList) {
         clearLayoutWithWidgets(targetLayout);
@@ -711,19 +927,35 @@ int main(int argc, char *argv[]) {
             QLabel *handleLbl = new QLabel(f.handle);
             handleLbl->setStyleSheet("font-size:13px; color:#5a5a5a;");
             infoColumn->addWidget(handleLbl);
+<<<<<<< Updated upstream
             QLabel *followersLbl = new QLabel(f.followers);
             followersLbl->setStyleSheet("font-size:12px; color:#7a7a7a;");
             infoColumn->addWidget(followersLbl);
+=======
+>>>>>>> Stashed changes
             cardLayout->addLayout(infoColumn);
             cardLayout->addStretch();
 
-            QPushButton *followBtn = new QPushButton(isFriendList ? "Followed" : "Follow");
-            followBtn->setStyleSheet("padding:6px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
-            if (isFriendList) {
-                followBtn->setEnabled(false);
-                followBtn->setStyleSheet("padding:6px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
-            }
+            QPushButton *followBtn = new QPushButton();
+            followButtons[f.handle].append(followBtn);
+            setFollowVisual(followBtn, followState.value(f.handle, isFriendList));
+            if (isFriendList) followState.insert(f.handle, true);
+            QObject::connect(followBtn, &QPushButton::clicked, &window, [=]() {
+                handleFollowClick(f.handle);
+            });
             cardLayout->addWidget(followBtn);
+<<<<<<< Updated upstream
+=======
+            if (isFriendList) {
+                QPushButton *chatBtn = new QPushButton("Chat");
+                chatBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
+                cardLayout->addWidget(chatBtn);
+                QObject::connect(chatBtn, &QPushButton::clicked, &window, [=]() {
+                    if (chatPage) chatPage->openThreadByIndex(idx);
+                    contentStack->setCurrentWidget(chatPage);
+                });
+            }
+>>>>>>> Stashed changes
 
             targetLayout->addWidget(card);
 
@@ -742,8 +974,14 @@ int main(int argc, char *argv[]) {
     };
 
     std::function<void(const QString&)> rebuildFriendsList = [&](const QString &filter) {
-        renderCards(friendSubset, friendsCardsLayout, filter, true);
-        renderCards(popularSubset, popularCardsLayout, filter, false);
+        renderCards(currentFriends, friendsCardsLayout, filter, true);
+        renderCards(currentPopular, popularCardsLayout, filter, false);
+    };
+
+    refreshFriendsUI = [&]() {
+        const QString filter = searchField ? searchField->text() : QString();
+        rebuildFriendsList(filter);
+        if (chatPage) chatPage->setThreads(currentFriends);
     };
 
     rebuildFriendsList(QString());
