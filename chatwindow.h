@@ -49,6 +49,8 @@ private:
     void rebuildThreadView();
     void openThread(int index);
     QPixmap makeAvatarPixmap(const QString &path, int size);
+
+    QPixmap createDefaultAvatar(int size);
 };
 
 #endif // CHATWINDOW_H

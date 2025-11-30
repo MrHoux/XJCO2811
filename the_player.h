@@ -44,9 +44,11 @@ private slots:
     void playStateChanged (QMediaPlayer::State ms);
 
 public slots:
-
     // start playing this ButtonInfo
     void jumpTo (TheButtonInfo* button);
+
+signals:
+    void errorOccurred(const QString& errorMessage);
 };
 
 #endif //CW2_THE_PLAYER_H

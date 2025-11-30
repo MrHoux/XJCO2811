@@ -12,6 +12,8 @@
 #include <QMouseEvent>
 #include <functional>
 #include <QBitmap>
+#include <QDebug>
+
 
 namespace {
 class TapFilter : public QObject {
@@ -127,10 +129,12 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
     threads = friends;
     if (!listWrapLayout) return;
 
-    QLayoutItem *child;
-    while ((child = listWrapLayout->takeAt(0)) != nullptr) {
-        if (child->widget()) child->widget()->deleteLater();
-        delete child;
+    // safe cleaning
+    while (QLayoutItem* child = listWrapLayout->takeAt(0)) {
+        if (QWidget* widget = child->widget()) {
+            widget->deleteLater();  // safe cleaning  widget
+        }
+        delete child;  // delete layout item
     }
 
     for (int i = 0; i < threads.size(); ++i) {
@@ -209,11 +213,15 @@ QWidget* ChatWindow::buildThreadBubble(const Message &m) {
 }
 
 void ChatWindow::rebuildThreadView() {
-    QLayoutItem *child;
-    while ((child = threadLayout->takeAt(0)) != nullptr) {
-        if (child->widget()) child->widget()->deleteLater();
+    // safe cleaning
+    while (QLayoutItem* child = threadLayout->takeAt(0)) {
+        if (QWidget* widget = child->widget()) {
+            widget->deleteLater();
+        }
         delete child;
     }
+
+    // rebuild the message bubble
     for (const auto &m : history) {
         threadLayout->addWidget(buildThreadBubble(m));
     }
@@ -247,24 +255,30 @@ void ChatWindow::openThreadByIndex(int index) {
 }
 
 QPixmap ChatWindow::makeAvatarPixmap(const QString &path, int size) {
+
     QPixmap src(path);
     if (src.isNull()) return QPixmap();
+    //scale
     QPixmap scaled = src.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+
     QPixmap mask(size, size);
-    mask.fill(Qt::transparent);
+    mask.fill(Qt::transparent);     //initially transparent
     QPainter painter(&mask);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setBrush(Qt::white);
-    painter.setPen(Qt::NoPen);
-    painter.drawEllipse(0, 0, size, size);
-    scaled.setMask(mask.createMaskFromColor(Qt::transparent));
+    painter.setRenderHint(QPainter::Antialiasing, true);   //edge smoothing
+    painter.setBrush(Qt::white);     //effective area
+    painter.setPen(Qt::NoPen);      //no outline
+    painter.drawEllipse(0, 0, size, size);     //circular filling
+
+    scaled.setMask(mask.createMaskFromColor(Qt::transparent));    //cut out
+
     QPixmap result(size, size);
     result.fill(Qt::transparent);
     QPainter out(&result);
     out.setRenderHint(QPainter::Antialiasing, true);
     QPainterPath clipPath;
-    clipPath.addEllipse(0, 0, size, size);
-    out.setClipPath(clipPath);
-    out.drawPixmap(0, 0, scaled);
+
+    clipPath.addEllipse(0, 0, size, size);    //clipping Path
+    out.setClipPath(clipPath);      //set the path
+    out.drawPixmap(0, 0, scaled);   //result
     return result;
 }

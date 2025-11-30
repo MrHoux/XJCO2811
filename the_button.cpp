@@ -6,7 +6,11 @@
 
 
 void TheButton::init(TheButtonInfo* i) {
-    setIcon( *(i->icon) );
+    if (!i) return;
+
+    if (i->icon) {
+        setIcon(*(i->icon));
+    }
     info =  i;
 }
 

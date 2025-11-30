@@ -57,6 +57,11 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
 
     std::vector<TheButtonInfo> out =  std::vector<TheButtonInfo>();
     QDir dir(QString::fromStdString(loc) );
+
+    if (!dir.exists()) {
+        qDebug() << "Video directory not found:" << QString::fromStdString(loc);
+        return out;
+    }
     QDirIterator it(dir);
 
     while (it.hasNext()) { // for all files
@@ -143,6 +148,7 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
+
     // create the main window with a centered phone mock
     QWidget window;
     window.setWindowTitle("FeeL");
@@ -212,8 +218,11 @@ int main(int argc, char *argv[]) {
 
     // helper to create a circular avatar pixmap
     auto makeAvatarPixmap = [](const QString &path, int size) -> QPixmap {
+
+
         QPixmap src(path);
         if (src.isNull()) return QPixmap();
+
         QPixmap scaled = src.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         QPixmap mask(size, size);
         mask.fill(Qt::transparent);
@@ -320,7 +329,6 @@ int main(int argc, char *argv[]) {
     QLineEdit *searchField = nullptr;
     ChatWindow *chatPage = nullptr;
     QWidget *activeOverlay = nullptr;
-
     QList<FriendData> currentFriends;
     QList<FriendData> currentPopular;
     QHash<QString, FriendData> friendLookup;
@@ -482,9 +490,12 @@ int main(int argc, char *argv[]) {
 
     auto clearLayout = [](QLayout *layout) {
         if (!layout) return;
-        QLayoutItem *child;
-        while ((child = layout->takeAt(0)) != nullptr) {
-            if (child->widget()) child->widget()->deleteLater();
+
+        // safe cleaning
+        while (QLayoutItem* child = layout->takeAt(0)) {
+            if (QWidget* widget = child->widget()) {
+                widget->deleteLater();
+            }
             delete child;
         }
     };
@@ -615,7 +626,8 @@ int main(int argc, char *argv[]) {
         QWidget *mediaSurface = nullptr;
         QMediaPlayer *cardPlayer = nullptr;
         QVideoWidget *cardVideo = nullptr;
-        if (info != nullptr) {
+
+        if (info != nullptr && info->url && info->url->isValid()) {
             cardVideo = new QVideoWidget(card);
             cardVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             cardVideo->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#050505;");
@@ -635,7 +647,7 @@ int main(int argc, char *argv[]) {
             mediaSurface = cardVideo;
         } else {
             QFrame *placeholder = new QFrame();
-            placeholder->setMinimumHeight(260);
+            placeholder->setMinimumHeight(200);
             placeholder->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#f7f7f7;");
             QLabel *videoText = new QLabel("VIDEOSALV", placeholder);
             videoText->setAlignment(Qt::AlignCenter);
@@ -1121,9 +1133,11 @@ int main(int argc, char *argv[]) {
     // helpers
     auto clearLayoutWithWidgets = [](QLayout *layout) {
         if (!layout) return;
-        QLayoutItem *child;
-        while ((child = layout->takeAt(0)) != nullptr) {
-            if (child->widget()) child->widget()->deleteLater();
+        // safe cleaning
+        while (QLayoutItem* child = layout->takeAt(0)) {
+            if (QWidget* widget = child->widget()) {
+                widget->deleteLater();
+            }
             delete child;
         }
     };
