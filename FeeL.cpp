@@ -61,11 +61,11 @@
 #include <QMenu>
 #include <QMenuBar>
 
-// Translator pointer
+// translator pointer
 QTranslator* g_translator = nullptr;
 QString g_currentLang = "en";
 
-// 语Language switching function
+// language switching function
 void switchLanguage(const QString& lang) {
     if (g_translator) {
         QApplication::removeTranslator(g_translator);
@@ -163,50 +163,52 @@ int main(int argc, char *argv[]) {
     // create the Qt Application
     QApplication app(argc, argv);
 
+
+
     // set application information
     app.setApplicationName("FeeL - Video Social App");
     app.setApplicationVersion("1.0");
     app.setOrganizationName("XJCO2811");
     app.setOrganizationDomain("leeds.ac.uk");
 
-    // 初始化翻译器
+    // initialize the translator
     g_translator = new QTranslator;
 
-    // 创建主窗口
+    // create the main window
     QWidget window;
     window.setWindowTitle("FeeL");
     window.setMinimumSize(520, 900);
 
-    // 创建菜单栏
+    // create a menu bar
     QMenuBar* menuBar = new QMenuBar(&window);
     QMenu* languageMenu = menuBar->addMenu("Language");
 
-    // 添加语言选项
+    // language options
     QAction* englishAction = new QAction("English", &window);
     QAction* chineseAction = new QAction("中文", &window);
 
     languageMenu->addAction(englishAction);
     languageMenu->addAction(chineseAction);
 
-    // 连接语言切换信号
+    // Connect the language switch signal
     QObject::connect(englishAction, &QAction::triggered, [&]() {
+        qDebug() << "English action triggered";
         switchLanguage("en");
     });
 
     QObject::connect(chineseAction, &QAction::triggered, [&]() {
+        qDebug() << "Chinese action triggered";
         switchLanguage("zh");
     });
 
-    // 现有布局代码继续...
     QHBoxLayout *root = new QHBoxLayout();
-    root->setContentsMargins(40, 50, 40, 30); // 增加上边距为菜单栏留空间
+    root->setContentsMargins(40, 50, 40, 30);
     root->addStretch();
     window.setLayout(root);
 
-    // 将菜单栏添加到布局顶部
+    // add the menu bar to the top of the layout
     root->addWidget(menuBar);
 
-    // 现有手机界面代码继续...
     QFrame *phone = new QFrame();
 
 
