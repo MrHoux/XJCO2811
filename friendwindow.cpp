@@ -1,18 +1,22 @@
 ﻿#include "friendwindow.h"
+#include <QApplication>
+
+extern QString currentLanguage;
+extern QString translate(const QString& text);
 
 Friendwindow::Friendwindow(QWidget *parent)
     : QWidget{parent}
 {
     // window size
     resize(375, 667);
-    setWindowTitle(tr("friend list"));
+    setWindowTitle(translate("friend list"));
 
     // main window width and length
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
     // label , title
-    QLabel *title = new QLabel(tr("friends"), this);
+    QLabel *title = new QLabel(translate("friends"), this);
     title->setStyleSheet("font-size: 18px; font-weight: bold; text-align: center; background: #f0f0f0; height: 40px; line-height: 40px;");
     mainLayout->addWidget(title);
 

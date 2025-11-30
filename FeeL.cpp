@@ -14,6 +14,7 @@
 #include <QtMultimediaWidgets/QVideoWidget>
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
+#include <QMap>
 #include <QString>
 #include <string>
 #include <vector>
@@ -60,32 +61,147 @@
 #include <QAction>
 #include <QMenu>
 #include <QMenuBar>
+#include <QSettings>
+#include <QMessageBox>
+#include <QProcess>
+#include <QApplication>
 
 // translator pointer
 QTranslator* g_translator = nullptr;
 QString g_currentLang = "en";
 
-// language switching function
-void switchLanguage(const QString& lang) {
-    if (g_translator) {
-        QApplication::removeTranslator(g_translator);
-        delete g_translator;
-        g_translator = nullptr;
+
+
+QMap<QString, QMap<QString, QString>> translationDictionary = {
+    {"en", {
+               {"Friend List", "Friend List"},
+               {"Friends", "Friends"},
+               {"Profile", "Profile"},
+               {"Back", "Back"},
+               {"No bio", "No bio"},
+               {"Chat", "Chat"},
+               {"Message", "Message"},
+               {"Send", "Send"},
+               {"Tap to open chat", "Tap to open chat"},
+               {"Home", "Home"},
+               {"Post", "Post"},
+               {"Search friends...", "Search friends..."},
+               {"Suggested", "Suggested"},
+               {"Add comment...", "Add comment..."},
+               {"Share Profile", "Share Profile"},
+               {"Posts are private by default", "Posts are private by default"},
+               {"Video", "Video"},
+               {"Comments", "Comments"},
+               {"Copy Link", "Copy Link"},
+               {"Save", "Save"},
+               {"Close", "Close"},
+               {"Share", "Share"},
+               {"Follow", "Follow"},
+               {"Followed", "Followed"},
+               {"Hello!", "Hello!"},
+               {"Hi there!", "Hi there!"},
+               {"How are you?", "How are you?"},
+               {"I'm good, thanks!", "I'm good, thanks!"}
+           }},
+    {"zh", {
+               {"Friend List", "好友列表"},
+               {"Friends", "好友"},
+               {"Profile", "个人资料"},
+               {"Back", "返回"},
+               {"No bio", "暂无简介"},
+               {"Chat", "聊天"},
+               {"Message", "消息"},
+               {"Send", "发送"},
+               {"Tap to open chat", "点击开始聊天"},
+               {"Home", "首页"},
+               {"Post", "发布"},
+               {"Search friends...", "搜索好友..."},
+               {"Suggested", "推荐"},
+               {"Add comment...", "添加评论..."},
+               {"Share Profile", "分享资料"},
+               {"Posts are private by default", "帖子默认设为私密"},
+               {"Instagram", "分享"},
+               {"Messages", "信息"},
+               {"Video", "视频"},
+               {"Send to apps or drop inside friends.", "发送到应用程序或发送给好友"},
+               {"Comments", "评论"},
+               {"Live chat", "在线聊天"},
+               {"Add a comment...", "添加评论"},
+               {"Copy Link", "复制链接"},
+               {"Save", "保存"},
+               {"Close", "关闭"},
+               {"Share", "分享"},
+               {"Follow", "关注"},
+               {"Followed", "已关注"},
+               {"Hello!", "你好！"},
+               {"Hi there!", "嗨！"},
+               {"How are you?", "你好吗？"},
+               {"No video", "无视频"},
+               {"I'm good, thanks!", "我很好，谢谢！"}
+           }}
+};
+
+// current language
+QString currentLanguage = "en";
+void saveLanguageSetting(const QString& lang) {
+    QSettings settings("XJCO2811", "FeeL");
+    settings.setValue("language", lang);
+    qDebug() << "保存语言设置:" << lang;
+}
+
+// loding language
+QString loadLanguageSetting() {
+    QSettings settings("XJCO2811", "FeeL");
+    QString lang = settings.value("language", "en").toString(); // 默认英语
+    qDebug() << "加载语言设置:" << lang;
+    return lang;
+}
+
+// restart app
+void restartApplication() {
+    qDebug() << "重启应用...";
+    QProcess::startDetached(QApplication::applicationFilePath(), QStringList());
+    QApplication::quit();
+}
+
+// translate
+QString translate(const QString& text) {
+    if (translationDictionary.contains(currentLanguage) &&
+        translationDictionary[currentLanguage].contains(text)) {
+        return translationDictionary[currentLanguage][text];
     }
+    return text;
+}
 
-    g_translator = new QTranslator;
-    g_currentLang = lang;
+// refresh the interface
+void refreshUITexts() {
 
-    if (lang == "zh") {
-        if (g_translator->load(":/translations/feel_zh.qm")) {
-            QApplication::installTranslator(g_translator);
-            qDebug() << "Switched to Chinese";
+    QMessageBox::information(nullptr,
+                             translate("Language Changed"),
+                             translate("Please restart the application to apply language changes."));
+}
+// language switching function
+
+void switchLanguage(const QString& lang) {
+    if (lang == "zh" || lang == "en") {
+        currentLanguage = lang;
+        saveLanguageSetting(lang);
+
+        //restart prompt
+        QMessageBox msgBox;
+        msgBox.setWindowTitle(translate("Language Changed"));
+        msgBox.setText(translate("Language changed successfully!"));
+        msgBox.setInformativeText(translate("The application needs to restart to apply the changes. Restart now?"));
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        msgBox.setDefaultButton(QMessageBox::Yes);
+
+        int ret = msgBox.exec();
+        if (ret == QMessageBox::Yes) {
+            restartApplication();
         }
-    } else {
-        // English is the default language, and no translation files are needed.
-        qDebug() << "Switched to English";
     }
 }
+
 
 
 // read in videos and thumbnails to this directory
@@ -171,6 +287,8 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName("XJCO2811");
     app.setOrganizationDomain("leeds.ac.uk");
 
+    currentLanguage = loadLanguageSetting();
+    qDebug() << "当前语言:" << currentLanguage;
     // initialize the translator
     g_translator = new QTranslator;
 
@@ -192,12 +310,10 @@ int main(int argc, char *argv[]) {
 
     // Connect the language switch signal
     QObject::connect(englishAction, &QAction::triggered, [&]() {
-        qDebug() << "English action triggered";
         switchLanguage("en");
     });
 
     QObject::connect(chineseAction, &QAction::triggered, [&]() {
-        qDebug() << "Chinese action triggered";
         switchLanguage("zh");
     });
 
@@ -225,7 +341,7 @@ int main(int argc, char *argv[]) {
         folder = QString::fromLocal8Bit(argv[1]);
     }
     if (folder.isEmpty()) {
-        folder = QFileDialog::getExistingDirectory(nullptr, QObject::tr("Select video folder"), QDir::homePath());
+        folder = QFileDialog::getExistingDirectory(nullptr, translate("Select video folder"), QDir::homePath());
     }
     if (!folder.isEmpty()) {
         videos = getInfoIn(folder.toStdString());
@@ -253,7 +369,7 @@ int main(int argc, char *argv[]) {
     window.setStyleSheet("QWidget { font-family: 'Segoe UI'; }");
 
     // QFrame *phone = new QFrame();
-    phone->setObjectName(QObject::tr("phoneFrame"));
+    phone->setObjectName(translate("phoneFrame"));
     phone->setMinimumWidth(360);
     phone->setStyleSheet("#phoneFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:46px; }");
     QVBoxLayout *phoneLayout = new QVBoxLayout(phone);
@@ -348,7 +464,7 @@ int main(int argc, char *argv[]) {
         outer->setContentsMargins(24, 24, 24, 24);
 
         QFrame *sheet = new QFrame();
-        sheet->setObjectName(QObject::tr("shareSheet"));
+        sheet->setObjectName(translate("shareSheet"));
         sheet->setStyleSheet("#shareSheet { background:#ffffff; border:2px solid #0b0b0b; border-radius:22px; }");
         QVBoxLayout *sheetLayout = new QVBoxLayout(sheet);
         sheetLayout->setSpacing(12);
@@ -358,14 +474,14 @@ int main(int argc, char *argv[]) {
         titleLbl->setStyleSheet("font-weight:800; font-size:16px;");
         sheetLayout->addWidget(titleLbl);
 
-        QLabel *subtitle = new QLabel(QObject::tr("Send to apps or drop inside friends."));
+        QLabel *subtitle = new QLabel(translate("Send to apps or drop inside friends."));
         subtitle->setStyleSheet("color:#6a6a6a;");
         sheetLayout->addWidget(subtitle);
 
-        QStringList apps = {QObject::tr("Copy Link"),
-                            QObject::tr("Instagram"),
-                            QObject::tr("Messages"),
-                            QObject::tr("Save")};
+        QStringList apps = {translate("Copy Link"),
+                            translate("Instagram"),
+                            translate("Messages"),
+                            translate("Save")};
         QHBoxLayout *appRow = new QHBoxLayout();
         appRow->setSpacing(8);
         for (const auto &app : apps) {
@@ -376,7 +492,7 @@ int main(int argc, char *argv[]) {
         appRow->addStretch();
         sheetLayout->addLayout(appRow);
 
-        QLabel *friendsTitle = new QLabel(QObject::tr("Friends in FeeL"));
+        QLabel *friendsTitle = new QLabel(translate("Friends in FeeL"));
         friendsTitle->setStyleSheet("font-weight:700; font-size:14px; margin-top:6px;");
         sheetLayout->addWidget(friendsTitle);
 
@@ -407,14 +523,14 @@ int main(int argc, char *argv[]) {
             rowLayout->addLayout(text);
             rowLayout->addStretch();
 
-            QPushButton *send = new QPushButton(QObject::tr("Send"));
+            QPushButton *send = new QPushButton(translate("Send"));
             send->setStyleSheet("padding:6px 12px; border:1px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
             rowLayout->addWidget(send);
             friendRows->addWidget(row);
         }
         sheetLayout->addLayout(friendRows);
 
-        QPushButton *close = new QPushButton(QObject::tr("Close"));
+        QPushButton *close = new QPushButton(translate("Close"));
         close->setStyleSheet("padding:8px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
         QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
         sheetLayout->addWidget(close, 0, Qt::AlignRight);
@@ -439,10 +555,10 @@ int main(int argc, char *argv[]) {
         if (!btn) return;
         btn->setEnabled(true);
         if (followed) {
-            btn->setText(QObject::tr("Followed"));
+            btn->setText(translate("Followed"));
             btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#e9e9e9; font-weight:600; color:#5a5a5a;");
         } else {
-            btn->setText(QObject::tr("Follow"));
+            btn->setText(translate("Follow"));
             btn->setStyleSheet("padding:6px 14px; border:1px solid #101010; border-radius:16px; background:#ffffff; font-weight:600; color:#0b0b0b;");
         }
     };
@@ -465,7 +581,7 @@ int main(int argc, char *argv[]) {
                 profileFollowStatusLabel->setVisible(false);
             } else {
                 profileFollowStatusLabel->setVisible(true);
-                profileFollowStatusLabel->setText(followed ? QObject::tr("Followed") : QObject::tr("Follow"));
+                profileFollowStatusLabel->setText(followed ? translate("Followed") : translate("Follow"));
             }
         }
     };
@@ -514,7 +630,7 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *profileLayout = new QVBoxLayout(profilePage);
     profileLayout->setContentsMargins(16, 16, 16, 16);
     profileLayout->setSpacing(16);
-    QPushButton *backToFriends = new QPushButton(QObject::tr("Friends"));
+    QPushButton *backToFriends = new QPushButton(translate("Friends"));
     backToFriends->setStyleSheet("padding:8px 16px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
     profileLayout->addWidget(backToFriends, 0, Qt::AlignLeft);
 
@@ -524,7 +640,7 @@ int main(int argc, char *argv[]) {
     profileAvatar->setStyleSheet("background:#d7d7d7; border-radius:80px; border:2px solid #0b0b0b;");
     profileLayout->addWidget(profileAvatar, 0, Qt::AlignHCenter);
 
-    QLabel *profileName = new QLabel(QObject::tr("Guest"));
+    QLabel *profileName = new QLabel(translate("Guest"));
     profileName->setStyleSheet("font-size:24px; font-weight:700; color:#0b0b0b;");
     profileLayout->addWidget(profileName, 0, Qt::AlignHCenter);
 
@@ -558,9 +674,9 @@ int main(int argc, char *argv[]) {
     QLabel *berealValue = nullptr;
     QLabel *friendsValue = nullptr;
     QLabel *followingValue = nullptr;
-    QWidget *berealStat = statWidget(&berealValue, QObject::tr("Posts"));
-    QWidget *friendsStat = statWidget(&friendsValue, QObject::tr("Friends"));
-    QWidget *followingStat = statWidget(&followingValue, QObject::tr("Following"));
+    QWidget *berealStat = statWidget(&berealValue, translate("Posts"));
+    QWidget *friendsStat = statWidget(&friendsValue, translate("Friends"));
+    QWidget *followingStat = statWidget(&followingValue, translate("Following"));
     statsRow->addStretch();
     statsRow->addWidget(berealStat);
     statsRow->addWidget(friendsStat);
@@ -568,14 +684,14 @@ int main(int argc, char *argv[]) {
     statsRow->addStretch();
     profileLayout->addLayout(statsRow);
 
-    QPushButton *shareProfile = new QPushButton(QObject::tr("Share Profile"));
+    QPushButton *shareProfile = new QPushButton(translate("Share Profile"));
     shareProfile->setStyleSheet("padding:12px 18px; border-radius:18px; background:#2f2f2f; color:#ffffff; font-weight:700;");
     profileLayout->addWidget(shareProfile, 0, Qt::AlignHCenter);
     QObject::connect(shareProfile, &QPushButton::clicked, &window, [&]() {
         showShareSheet(QStringLiteral("Share %1").arg(myProfile.handle), &window);
     });
 
-    QLabel *privacyNote = new QLabel(QObject::tr("Your Posts are private and ephemeral unless shared."));
+    QLabel *privacyNote = new QLabel(translate("Your Posts are private and ephemeral unless shared."));
     privacyNote->setStyleSheet("font-size:12px; color:#6a6a6a;");
     profileLayout->addWidget(privacyNote, 0, Qt::AlignHCenter);
 
@@ -610,12 +726,12 @@ int main(int argc, char *argv[]) {
         profileName->setText(f.name);
         profileHandle->setText(f.handle);
         if (f.name == myProfile.name) {
-            profileFollowStatus->setText(QObject::tr("This is you"));
+            profileFollowStatus->setText(translate("This is you"));
             profileFollowStatus->setVisible(false);
         } else {
             const bool followed = followState.value(f.handle, false);
             profileFollowStatus->setVisible(true);
-            profileFollowStatus->setText(followed ? QObject::tr("Followed") : QObject::tr("Follow"));
+            profileFollowStatus->setText(followed ? translate("Followed") : translate("Follow"));
         }
         // update stats
         berealValue->setText(QString::number(f.bereals));
@@ -824,7 +940,7 @@ int main(int argc, char *argv[]) {
         statsRow->addWidget(likeCount);
         statsRow->addStretch();
         QToolButton *shareBtn = new QToolButton();
-        shareBtn->setText(QObject::tr("Share"));
+        shareBtn->setText(translate("Share"));
         shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #101010; border-radius:14px; background:#ffffff; font-weight:700; }");
         statsRow->addWidget(shareBtn);
         cardLayout->addLayout(statsRow);
@@ -836,7 +952,7 @@ int main(int argc, char *argv[]) {
 
         QVBoxLayout *commentSection = new QVBoxLayout();
         commentSection->setSpacing(8);
-        QLabel *commentLabel = new QLabel(QObject::tr("Comments"));
+        QLabel *commentLabel = new QLabel(translate("Comments"));
         commentLabel->setStyleSheet("font-weight:700; color:#0b0b0b;");
         commentSection->addWidget(commentLabel);
 
@@ -846,7 +962,7 @@ int main(int argc, char *argv[]) {
         commentSection->addLayout(commentsList);
 
         QLineEdit *commentInput = new QLineEdit();
-        commentInput->setPlaceholderText(QObject::tr("Add a comment..."));
+        commentInput->setPlaceholderText(translate("Add a comment..."));
         commentInput->setStyleSheet("padding:8px 10px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff;");
         commentSection->addWidget(commentInput);
 
@@ -928,7 +1044,7 @@ int main(int argc, char *argv[]) {
             activeOverlay = nullptr;
         }
         QWidget *overlay = new QWidget(phone);
-        overlay->setObjectName(QObject::tr("detailOverlay"));
+        overlay->setObjectName(translate("detailOverlay"));
         overlay->setStyleSheet("#detailOverlay { background: rgba(0,0,0,120); }");
         overlay->setGeometry(phone->rect());
         overlay->raise();
@@ -941,7 +1057,7 @@ int main(int argc, char *argv[]) {
         overlayLayout->setContentsMargins(10, 10, 10, 10);
 
         QFrame *panel = new QFrame();
-        panel->setObjectName(QObject::tr("detailPanel"));
+        panel->setObjectName(translate("detailPanel"));
         panel->setStyleSheet("#detailPanel { background:#ffffff; border:2px solid #0b0b0b; border-radius:24px; }");
         panel->setFixedSize(w, h);
         QVBoxLayout *panelLayout = new QVBoxLayout(panel);
@@ -966,7 +1082,7 @@ int main(int argc, char *argv[]) {
             QFrame *ph = new QFrame();
             ph->setMinimumHeight(static_cast<int>(h * 0.4));
             ph->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#f5f5f5;");
-            QLabel *txt = new QLabel(QObject::tr("No video"), ph);
+            QLabel *txt = new QLabel(translate("No video"), ph);
             txt->setAlignment(Qt::AlignCenter);
             txt->setStyleSheet("color:#7a7a7a; font-weight:700;");
             videoWrap = ph;
@@ -1005,22 +1121,22 @@ int main(int argc, char *argv[]) {
         actionRow->addWidget(likeCount);
         actionRow->addStretch();
         QToolButton *shareBtn = new QToolButton();
-        shareBtn->setText(QObject::tr("Share"));
+        shareBtn->setText(translate("Share"));
         shareBtn->setStyleSheet("QToolButton { padding:8px 14px; border:1px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:700; }");
         actionRow->addWidget(shareBtn);
         panelLayout->addLayout(actionRow);
 
-        QLabel *chatTitle = new QLabel(QObject::tr("Live chat"));
+        QLabel *chatTitle = new QLabel(translate("Live chat"));
         chatTitle->setStyleSheet("font-weight:800; font-size:14px;");
         panelLayout->addWidget(chatTitle);
 
         QVBoxLayout *chatList = new QVBoxLayout();
         chatList->setSpacing(10);
         QStringList sampleTexts = {
-            QObject::tr("This angle looks fire."),
-            QObject::tr("Where was this shot?"),
-            QObject::tr("Drop the playlist please."),
-            QObject::tr("I need this energy today.")
+            translate("This angle looks fire."),
+            translate("Where was this shot?"),
+            translate("Drop the playlist please."),
+            translate("I need this energy today.")
         };
         int chatCount = qMin(4, friends.size());
         for (int i = 0; i < chatCount; ++i) {
@@ -1050,7 +1166,7 @@ int main(int argc, char *argv[]) {
 
         QHBoxLayout *closeRow = new QHBoxLayout();
         closeRow->addStretch();
-        QPushButton *closeBtn = new QPushButton(QObject::tr("Close"));
+        QPushButton *closeBtn = new QPushButton(translate("Close"));
         closeBtn->setStyleSheet("padding:10px 14px; border:2px solid #0b0b0b; border-radius:14px; background:#fdfdfd; font-weight:700;");
         closeRow->addWidget(closeBtn);
         panelLayout->addLayout(closeRow);
@@ -1217,18 +1333,18 @@ int main(int argc, char *argv[]) {
 
     QLineEdit *search = new QLineEdit();
     searchField = search;
-    search->setPlaceholderText(QObject::tr("Add or search friends"));
+    search->setPlaceholderText(translate("Add or search friends"));
     search->setStyleSheet("padding:10px 12px; border:2px solid #101010; border-radius:16px; background:#f2f2f2;");
 
     // static headers and containers
-    QLabel *friendsTitle = new QLabel(QObject::tr("Friends"));
+    QLabel *friendsTitle = new QLabel(translate("Friends"));
     friendsTitle->setStyleSheet("font-size:18px; font-weight:700;");
     QWidget *friendsCardsWrap = new QWidget();
     QVBoxLayout *friendsCardsLayout = new QVBoxLayout(friendsCardsWrap);
     friendsCardsLayout->setContentsMargins(0, 0, 0, 0);
     friendsCardsLayout->setSpacing(10);
 
-    QLabel *popularTitle = new QLabel(QObject::tr("Recommend Accounts"));
+    QLabel *popularTitle = new QLabel(translate("Recommend Accounts"));
     popularTitle->setStyleSheet("font-size:18px; font-weight:700;");
     QWidget *popularCardsWrap = new QWidget();
     QVBoxLayout *popularCardsLayout = new QVBoxLayout(popularCardsWrap);
@@ -1316,7 +1432,7 @@ int main(int argc, char *argv[]) {
             });
             cardLayout->addWidget(followBtn);
             if (isFriendList) {
-                QPushButton *chatBtn = new QPushButton(QObject::tr("Chat"));
+                QPushButton *chatBtn = new QPushButton(translate("Chat"));
                 chatBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
                 cardLayout->addWidget(chatBtn);
                 QObject::connect(chatBtn, &QPushButton::clicked, &window, [=]() {
@@ -1335,7 +1451,7 @@ int main(int argc, char *argv[]) {
             QObject::connect(nameBtn, &QPushButton::clicked, &window, goProfile);
         }
         if (added == 0) {
-            QLabel *empty = new QLabel(QObject::tr("No results"));
+            QLabel *empty = new QLabel(translate("No results"));
             empty->setStyleSheet("color:#7a7a7a;");
             targetLayout->addWidget(empty);
         }
@@ -1368,9 +1484,11 @@ int main(int argc, char *argv[]) {
     QHBoxLayout *navLayout = new QHBoxLayout(navBar);
     navLayout->setSpacing(18);
     navLayout->setContentsMargins(0, 0, 0, 0);
-    QStringList navItems = {QObject::tr("Home"), QObject::tr("Friends"),
-                            QObject::tr("Posts"), QObject::tr("Chat"),
-                            QObject::tr("Profile")};
+    QStringList navItems = {translate("Home"),
+                            translate("Friends"),
+                            translate("Post"),
+                            translate("Chat"),
+                            translate("Profile")};
     for (const QString &item : navItems) {
         QPushButton *navButton = new QPushButton(item);
         navButton->setFlat(true);

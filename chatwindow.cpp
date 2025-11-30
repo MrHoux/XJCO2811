@@ -13,7 +13,10 @@
 #include <functional>
 #include <QBitmap>
 #include <QDebug>
+#include <QApplication>
 
+extern QString currentLanguage;
+extern QString translate(const QString& text);
 
 namespace {
 class TapFilter : public QObject {
@@ -42,7 +45,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     listLayout->setContentsMargins(0, 0, 0, 0);
     listLayout->setSpacing(10);
 
-    QLabel *title = new QLabel(tr("Chat"));
+    QLabel *title = new QLabel(translate("Chat"));
     title->setStyleSheet("font-size:20px; font-weight:800;");
     listLayout->addWidget(title);
 
@@ -83,7 +86,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     header->addLayout(headerText);
     header->addStretch();
 
-    QPushButton *backBtn = new QPushButton(tr("Back"));
+    QPushButton *backBtn = new QPushButton(translate("Back"));
     backBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
     QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
         stack->setCurrentWidget(listPage);
@@ -105,9 +108,9 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *inputRow = new QHBoxLayout();
     inputRow->setSpacing(8);
     input = new QLineEdit();
-    input->setPlaceholderText(tr("Message"));
+    input->setPlaceholderText(translate("Message"));
     input->setStyleSheet("padding:10px; border:2px solid #0b0b0b; border-radius:14px;");
-    QPushButton *sendBtn = new QPushButton(tr("Send"));
+    QPushButton *sendBtn = new QPushButton(translate("Send"));
     sendBtn->setStyleSheet("padding:10px 16px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
     inputRow->addWidget(input);
     inputRow->addWidget(sendBtn);
@@ -160,7 +163,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
         QPushButton *name = new QPushButton(f.name);
         name->setFlat(true);
         name->setStyleSheet("text-align:left; font-weight:700; font-size:15px; color:#0b0b0b;");
-        QPushButton *preview = new QPushButton(tr("Tap to open chat"));
+        QPushButton *preview = new QPushButton(translate("Tap to open chat"));
         preview->setFlat(true);
         preview->setStyleSheet("text-align:left; color:#666;");
         info->addWidget(name);
@@ -168,7 +171,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
         cardLayout->addLayout(info);
         cardLayout->addStretch();
 
-        QPushButton *open = new QPushButton(tr("CHAT"));
+        QPushButton *open = new QPushButton(translate("Chat"));
         open->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
         cardLayout->addWidget(open);
 
@@ -241,10 +244,10 @@ void ChatWindow::openThread(int index) {
     threadHandle->setText(f.handle);
 
     history.clear();
-    history.append({false, tr("Hello!")});
-    history.append({true, tr("Hi there!")});
-    history.append({false, tr("How are you?")});
-    history.append({true, tr("I'm good, thanks!")});
+    history.append({false, translate("Hello!")});
+    history.append({true, translate("Hi there!")});
+    history.append({false, translate("How are you?")});
+    history.append({true, translate("I'm good, thanks!")});
     rebuildThreadView();
 
     stack->setCurrentWidget(threadPage);
@@ -258,7 +261,7 @@ QPixmap ChatWindow::makeAvatarPixmap(const QString &path, int size) {
 
     QPixmap src(path);
     if (src.isNull()) {
-        // 如果头像加载失败，创建简单的默认头像
+        // if the avatar fails to load, create a default avatar.
         QPixmap defaultPixmap(size, size);
         defaultPixmap.fill(QColor("#e0e0e0"));
         return defaultPixmap;
