@@ -61,11 +61,11 @@
 #include <QMenu>
 #include <QMenuBar>
 
-// 在全局变量区域添加翻译器指针
+// Translator pointer
 QTranslator* g_translator = nullptr;
 QString g_currentLang = "en";
 
-// 创建语言切换函数
+// 语Language switching function
 void switchLanguage(const QString& lang) {
     if (g_translator) {
         QApplication::removeTranslator(g_translator);
@@ -82,7 +82,7 @@ void switchLanguage(const QString& lang) {
             qDebug() << "Switched to Chinese";
         }
     } else {
-        // 英文是默认语言，不需要翻译文件
+        // English is the default language, and no translation files are needed.
         qDebug() << "Switched to English";
     }
 }
@@ -230,11 +230,12 @@ int main(int argc, char *argv[]) {
     }
 
     if (videos.size() == 0) {
-        const int result = QMessageBox::information(
-                    NULL,
-                    QString("FeeL"),
-                    QString("no videos found in selected folder."));
-        exit(-1);
+        // const int result = QMessageBox::information(
+        //             NULL,
+        //             QString("FeeL"),
+        //             QString("no videos found in selected folder."));
+        // exit(-1);
+        qDebug() << "No videos found, using demo mode";
     }
 
 
