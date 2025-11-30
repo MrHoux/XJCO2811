@@ -43,6 +43,7 @@ private slots:
 
     void playStateChanged (QMediaPlayer::State ms);
 
+
 public slots:
     // start playing this ButtonInfo
     void jumpTo (TheButtonInfo* button);

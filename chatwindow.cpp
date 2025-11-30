@@ -257,7 +257,13 @@ void ChatWindow::openThreadByIndex(int index) {
 QPixmap ChatWindow::makeAvatarPixmap(const QString &path, int size) {
 
     QPixmap src(path);
-    if (src.isNull()) return QPixmap();
+    if (src.isNull()) {
+        // 如果头像加载失败，创建简单的默认头像
+        QPixmap defaultPixmap(size, size);
+        defaultPixmap.fill(QColor("#e0e0e0"));
+        return defaultPixmap;
+    }
+
     //scale
     QPixmap scaled = src.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
 

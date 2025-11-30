@@ -127,6 +127,18 @@ int main(int argc, char *argv[]) {
     // create the Qt Application
     QApplication app(argc, argv);
 
+    // set application information
+    app.setApplicationName("FeeL - Video Social App");
+    app.setApplicationVersion("1.0");
+    app.setOrganizationName("XJCO2811");
+    app.setOrganizationDomain("leeds.ac.uk");
+
+    //improve the appearance
+    app.setStyle("Fusion");
+
+    qDebug() << "Qt version: " << QT_VERSION_STR;
+    qDebug() << "Starting FeeL application...";
+
     // collect all the videos in the folder (prompt if not provided)
     std::vector<TheButtonInfo> videos;
     QString folder;
@@ -219,9 +231,13 @@ int main(int argc, char *argv[]) {
     // helper to create a circular avatar pixmap
     auto makeAvatarPixmap = [](const QString &path, int size) -> QPixmap {
 
-
         QPixmap src(path);
-        if (src.isNull()) return QPixmap();
+        if (src.isNull()) {
+            // if the avatar fails to load, create a simple default avatar.
+            QPixmap defaultPixmap(size, size);
+            defaultPixmap.fill(QColor("#e0e0e0"));
+            return defaultPixmap;
+        }
 
         QPixmap scaled = src.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         QPixmap mask(size, size);
@@ -637,6 +653,14 @@ int main(int argc, char *argv[]) {
             loop->setPlaybackMode(QMediaPlaylist::Loop);
             cardPlayer->setPlaylist(loop);
             cardPlayer->setVideoOutput(cardVideo);
+
+            // 简单的错误处理
+            QObject::connect(cardPlayer, static_cast<void(QMediaPlayer::*)(QMediaPlayer::Error)>(&QMediaPlayer::error),
+                             [=](QMediaPlayer::Error error) {
+                                 // 静默处理错误，不输出日志
+                             });
+
+
             if (autoPlay) {
                 cardPlayer->play();
             } else {
@@ -1032,6 +1056,12 @@ int main(int argc, char *argv[]) {
     std::function<void()> rebuildFeed = [&]() {
         clearGrid(feedLayout);
         int viewportWidth = feedArea->viewport()->width();
+
+        // ensure that viewportWidth is valid
+        if (viewportWidth <= 0) {
+            viewportWidth = 360; // 默认宽度
+        }
+
         int columns = 1;
         if (viewportWidth > 980) columns = 3;
         else if (viewportWidth > 640) columns = 2;

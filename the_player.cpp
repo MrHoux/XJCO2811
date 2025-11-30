@@ -4,6 +4,7 @@
 
 #include "the_player.h"
 #include <QDebug>
+#include <QTimer>
 
 // all buttons have been setup, store pointers here
 void ThePlayer::setContent(std::vector<TheButton*>* b, std::vector<TheButtonInfo>* i) {
@@ -32,14 +33,15 @@ void ThePlayer::playStateChanged(QMediaPlayer::State ms) {
     default:
         break;
     }
+
 }
 
 void ThePlayer::jumpTo(TheButtonInfo* button) {
-    if (!button || !button->url) {
-        qDebug() << "Invalid button info for jumpTo";
-        return;
-    }
+    // Null pointer check
+    if (button && button->url) return;
 
-    setMedia(*button->url);
-    play();
+        setMedia( * button -> url);
+        play();
+
 }
+
