@@ -1,4 +1,4 @@
-//
+﻿//
 // Chat window implementation
 //
 
@@ -42,7 +42,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     listLayout->setContentsMargins(0, 0, 0, 0);
     listLayout->setSpacing(10);
 
-    QLabel *title = new QLabel("Chat");
+    QLabel *title = new QLabel(tr("Chat"));
     title->setStyleSheet("font-size:20px; font-weight:800;");
     listLayout->addWidget(title);
 
@@ -83,7 +83,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     header->addLayout(headerText);
     header->addStretch();
 
-    QPushButton *backBtn = new QPushButton("Back");
+    QPushButton *backBtn = new QPushButton(tr("Back"));
     backBtn->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
     QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
         stack->setCurrentWidget(listPage);
@@ -105,9 +105,9 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *inputRow = new QHBoxLayout();
     inputRow->setSpacing(8);
     input = new QLineEdit();
-    input->setPlaceholderText("Message");
+    input->setPlaceholderText(tr("Message"));
     input->setStyleSheet("padding:10px; border:2px solid #0b0b0b; border-radius:14px;");
-    QPushButton *sendBtn = new QPushButton("Send");
+    QPushButton *sendBtn = new QPushButton(tr("Send"));
     sendBtn->setStyleSheet("padding:10px 16px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
     inputRow->addWidget(input);
     inputRow->addWidget(sendBtn);
@@ -160,7 +160,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
         QPushButton *name = new QPushButton(f.name);
         name->setFlat(true);
         name->setStyleSheet("text-align:left; font-weight:700; font-size:15px; color:#0b0b0b;");
-        QPushButton *preview = new QPushButton("Tap to open chat");
+        QPushButton *preview = new QPushButton(tr("Tap to open chat"));
         preview->setFlat(true);
         preview->setStyleSheet("text-align:left; color:#666;");
         info->addWidget(name);
@@ -168,7 +168,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
         cardLayout->addLayout(info);
         cardLayout->addStretch();
 
-        QPushButton *open = new QPushButton("CHAT");
+        QPushButton *open = new QPushButton(tr("CHAT"));
         open->setStyleSheet("padding:6px 12px; border:2px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:600;");
         cardLayout->addWidget(open);
 
@@ -241,10 +241,10 @@ void ChatWindow::openThread(int index) {
     threadHandle->setText(f.handle);
 
     history.clear();
-    history.append({false, "Nice to meet you."});
-    history.append({true, "Nice to meet you too."});
-    history.append({false, "How's your day going?"});
-    history.append({true, "Pretty good, thanks!"});
+    history.append({false, tr("Hello!")});
+    history.append({true, tr("Hi there!")});
+    history.append({false, tr("How are you?")});
+    history.append({true, tr("I'm good, thanks!")});
     rebuildThreadView();
 
     stack->setCurrentWidget(threadPage);

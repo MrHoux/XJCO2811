@@ -1,17 +1,17 @@
-#include "profilewindow.h"
+﻿#include "profilewindow.h"
 
 Profilewindow::Profilewindow(QWidget *parent)
     : QWidget{parent}
 {
     // match the friends window size
     resize(375, 667);
-    setWindowTitle("personal profile");
+    setWindowTitle(tr("personal profile"));
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(40);
 
-    QPushButton *backBtn = new QPushButton("返回", this);
+    QPushButton *backBtn = new QPushButton(tr("back"), this);
     backBtn->setStyleSheet("padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 4px;");
     mainLayout->addWidget(backBtn, 0, Qt::AlignLeft);
 
@@ -28,5 +28,5 @@ Profilewindow::Profilewindow(QWidget *parent)
 
 void Profilewindow::setProfileInfo(const FriendData& data) {
     m_nameLabel->setText(data.name);
-    m_bioLabel->setText(data.bio.isEmpty() ? "no profile" : data.bio);
+    m_bioLabel->setText(data.bio.isEmpty() ? tr("no profile") : data.bio);
 }
