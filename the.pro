@@ -9,9 +9,11 @@ CONFIG += c++11
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-# add internationalization support
-# TRANSLATIONS += feel_en.ts feel_zh.ts
 
+QMAKE_CXXFLAGS += -finput-charset=UTF-8
+QMAKE_CXXFLAGS += -fexec-charset=UTF-8
+QMAKE_CXXFLAGS += -fwide-exec-charset=UTF-8
+TRANSLATIONS += feel_en.ts feel_zh.ts
 # set the source file encoding
 CODECFORSRC = UTF-8
 

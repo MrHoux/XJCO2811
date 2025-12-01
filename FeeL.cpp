@@ -152,7 +152,7 @@ void saveLanguageSetting(const QString& lang) {
 // loding language
 QString loadLanguageSetting() {
     QSettings settings("XJCO2811", "FeeL");
-    QString lang = settings.value("language", "en").toString(); // 默认英语
+    QString lang = settings.value("language", "en").toString();
     qDebug() << "加载语言设置:" << lang;
     return lang;
 }
@@ -279,7 +279,13 @@ int main(int argc, char *argv[]) {
     // create the Qt Application
     QApplication app(argc, argv);
 
-
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
+    QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
+#else
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
+#endif
 
     // set application information
     app.setApplicationName("FeeL - Video Social App");
