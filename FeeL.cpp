@@ -137,7 +137,10 @@ QMap<QString, QMap<QString, QString>> translationDictionary = {
                {"Hi there!", "嗨！"},
                {"How are you?", "你好吗？"},
                {"No video", "无视频"},
-               {"I'm good, thanks!", "我很好，谢谢！"}
+               {"I'm good, thanks!", "我很好，谢谢！"},
+               {"Recommend Accounts", "推荐账号"},
+               {"Add or search friends", "添加或搜索好友"},
+               {"Your Posts are private and ephemeral unless shared.", "除非进行分享，否则你的帖子是私密且短暂的。"}
            }}
 };
 
@@ -1501,22 +1504,39 @@ int main(int argc, char *argv[]) {
         navButton->setStyleSheet("QPushButton { border: none; font-weight:600; color:#5f5f5f; }");
         navLayout->addWidget(navButton);
 
-        if (item == "FRIENDS") {
+        if (item == "Friends") {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(friendsPage);
             });
-        } else if (item == "PROFILE") {
+        } else if (item == "Profile" ) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 applyProfile(myProfile);
                 contentStack->setCurrentWidget(profilePage);
             });
-        } else if (item == "CHAT") {
+        } else if (item == "Chat" ) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(chatPage);
             });
-        } else if (item == "HOME") {
+        } else if (item == "Home" ) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(homePage);
+            });
+        } else if (item == "个人资料" ) {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                applyProfile(myProfile);
+                contentStack->setCurrentWidget(profilePage);
+            });
+        } else if (item == "聊天" ) {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                contentStack->setCurrentWidget(chatPage);
+            });
+        } else if (item == "首页" ) {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                contentStack->setCurrentWidget(homePage);
+            });
+        } else if (item == "好友") {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                contentStack->setCurrentWidget(friendsPage);
             });
         }
     }
