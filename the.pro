@@ -18,6 +18,8 @@ TRANSLATIONS += feel_en.ts feel_zh.ts
 CODECFORSRC = UTF-8
 
 SOURCES += \
+        detailwindow.cpp \
+        settingwindow.cpp \
         the_button.cpp \
         the_player.cpp \
         friendwindow.cpp \
@@ -27,6 +29,8 @@ SOURCES += \
         FeeL.cpp
 
 HEADERS += \
+    detailwindow.h \
+    settingwindow.h \
     the_button.h \
     the_player.h \
     friendwindow.h \

@@ -69,6 +69,8 @@
 #include <QProcess>
 #include <QApplication>
 #include "postpage.h"
+#include "settingwindow.h"
+#include "detailwindow.h"
 
 // translator pointer
 QTranslator* g_translator = nullptr;
@@ -77,97 +79,107 @@ QString g_currentLang = "en";
 
 
 QMap<QString, QMap<QString, QString>> translationDictionary = {
-    {"en", {
-               {"Friend List", "Friend List"},
-               {"Friends", "Friends"},
-               {"Profile", "Profile"},
-               {"Language", "Language"},
-               {"Back", "Back"},
-               {"Publish", "Publish"},
-               {"Publish captured photo?", "Publish captured photo?"},
-               {"Publish captured video?", "Publish captured video?"},
-               {"Photo", "Photo"},
-               {"Video", "Video"},
-               {"Open album? (mock)", "Open album? (mock)"},
-               {"Open", "Open"},
-               {"Cancel", "Cancel"},
-               {"No bio", "No bio"},
-               {"Chat", "Chat"},
-               {"Message", "Message"},
-               {"Send", "Send"},
-               {"Tap to open chat", "Tap to open chat"},
-               {"Home", "Home"},
-               {"Post", "Post"},
-               {"Search friends...", "Search friends..."},
-               {"Suggested", "Suggested"},
-               {"Add comment...", "Add comment..."},
-               {"Share Profile", "Share Profile"},
-               {"Posts are private by default", "Posts are private by default"},
-               {"Video", "Video"},
-               {"Comments", "Comments"},
-               {"Copy Link", "Copy Link"},
-               {"Save", "Save"},
-               {"Close", "Close"},
-               {"Share", "Share"},
-               {"Follow", "Follow"},
-               {"Followed", "Followed"},
-               {"Full screen", "Full screen"},
-               {"New Post", "New Post"},
-               {"Hello!", "Hello!"},
-               {"Hi there!", "Hi there!"},
-               {"How are you?", "How are you?"},
-               {"I'm good, thanks!", "I'm good, thanks!"}
+    {"en",  {
+            {"Friend List", "Friend List"},
+            {"Friends", "Friends"},
+            {"Profile", "Profile"},
+            {"Language", "Language"},
+            {"Back", "Back"},
+            {"Publish", "Publish"},
+            {"Publish captured photo?", "Publish captured photo?"},
+            {"Publish captured video?", "Publish captured video?"},
+            {"Photo", "Photo"},
+            {"Video", "Video"},
+            {"Open album? (mock)", "Open album? (mock)"},
+            {"Open", "Open"},
+            {"Cancel", "Cancel"},
+            {"No bio", "No bio"},
+            {"Chat", "Chat"},
+            {"Message", "Message"},
+            {"Send", "Send"},
+            {"Tap to open chat", "Tap to open chat"},
+            {"Home", "Home"},
+            {"Post", "Post"},
+            {"Search friends...", "Search friends..."},
+            {"Suggested", "Suggested"},
+            {"Add comment...", "Add comment..."},
+            {"Share Profile", "Share Profile"},
+            {"Posts are private by default", "Posts are private by default"},
+            {"Video", "Video"},
+            {"Comments", "Comments"},
+            {"Copy Link", "Copy Link"},
+            {"Save", "Save"},
+            {"Close", "Close"},
+            {"Share", "Share"},
+            {"Follow", "Follow"},
+            {"Followed", "Followed"},
+            {"Full screen", "Full screen"},
+            {"New Post", "New Post"},
+            {"Hello!", "Hello!"},
+            {"Hi there!", "Hi there!"},
+            {"How are you?", "How are you?"},
+            {"I'm good, thanks!", "I'm good, thanks!"}
            }},
-    {"zh", {
-               {"Friend List", "好友列表"},
-               {"Friends", "好友"},
-               {"Profile", "个人资料"},
-               {"Language", "语言"},
-               {"Back", "返回"},
-               {"Publish", "发布"},
-               {"Publish captured photo?", "发布拍摄的照片？"},
-               {"Publish captured video?", "发布拍摄的视频？"},
-               {"Photo", "照片"},
-               {"Video", "视频"},
-               {"Open album? (mock)", "打开相册？（演示）"},
-               {"Open", "打开"},
-               {"Cancel", "取消"},
-               {"No bio", "暂无简介"},
-               {"Chat", "聊天"},
-               {"Message", "消息"},
-               {"Send", "发送"},
-               {"Tap to open chat", "点击开始聊天"},
-               {"Home", "首页"},
-               {"Post", "发布"},
-               {"Search friends...", "搜索好友..."},
-               {"Suggested", "推荐"},
-               {"Add comment...", "添加评论..."},
-               {"Share Profile", "分享资料"},
-               {"Posts are private by default", "帖子默认设为私密"},
-               {"Instagram", "分享"},
-               {"Messages", "信息"},
-               {"Video", "视频"},
-               {"Send to apps or drop inside friends.", "发送到应用程序或发送给好友"},
-               {"Comments", "评论"},
-               {"Live chat", "在线聊天"},
-               {"Add a comment...", "添加评论"},
-               {"Copy Link", "复制链接"},
-               {"Save", "保存"},
-               {"Close", "关闭"},
-               {"Share", "分享"},
-               {"Follow", "关注"},
-               {"Followed", "已关注"},
-               {"Full screen", "全屏"},
-               {"New Post", "新帖子"},
-               {"Hello!", "你好！"},
-               {"Hi there!", "嗨！"},
-               {"How are you?", "你好吗？"},
-               {"No video", "无视频"},
-               {"I'm good, thanks!", "我很好，谢谢！"},
-               {"Recommend Accounts", "推荐账号"},
-               {"Add or search friends", "添加或搜索好友"},
-               {"Your Posts are private and ephemeral unless shared.", "除非进行分享，否则你的帖子是私密且短暂的。"}
-           }}
+    {"zh",  {
+            {"Friend List", "好友列表"},
+            {"Friends", "好友"},
+            {"Profile", "个人资料"},
+            {"Language", "语言"},
+            {"Back", "返回"},
+            {"Publish", "发布"},
+            {"Publish captured photo?", "发布拍摄的照片？"},
+            {"Publish captured video?", "发布拍摄的视频？"},
+            {"Photo", "照片"},
+            {"Video", "视频"},
+            {"Open album? (mock)", "打开相册？（演示）"},
+            {"Open", "打开"},
+            {"Cancel", "取消"},
+            {"No bio", "暂无简介"},
+            {"Chat", "聊天"},
+            {"Message", "消息"},
+            {"Send", "发送"},
+            {"Tap to open chat", "点击开始聊天"},
+            {"Home", "首页"},
+            {"Post", "发布"},
+            {"Search friends...", "搜索好友..."},
+            {"Suggested", "推荐"},
+            {"Add comment...", "添加评论..."},
+            {"Share Profile", "分享资料"},
+            {"Posts are private by default", "帖子默认设为私密"},
+            {"Instagram", "分享"},
+            {"Messages", "信息"},
+            {"Video", "视频"},
+            {"Send to apps or drop inside friends.", "发送到应用程序或发送给好友"},
+            {"Comments", "评论"},
+            {"Live chat", "在线聊天"},
+            {"Add a comment...", "添加评论"},
+            {"Copy Link", "复制链接"},
+            {"Save", "保存"},
+            {"Close", "关闭"},
+            {"Share", "分享"},
+            {"Follow", "关注"},
+            {"Followed", "已关注"},
+            {"Full screen", "全屏"},
+            {"New Post", "新帖子"},
+            {"Hello!", "你好！"},
+            {"Hi there!", "嗨！"},
+            {"How are you?", "你好吗？"},
+            {"No video", "无视频"},
+            {"I'm good, thanks!", "我很好，谢谢！"},
+            {"Recommend Accounts", "推荐账号"},
+            {"Add or search friends", "添加或搜索好友"},
+
+            {"Audio", "音频"},{"FEATURES", "特点"},
+            {"Settings", "设置"},{"Notifications", "通知"},
+            {"Privacy", "隐私"},{"Time Zone", "时区"},
+            {"Other", "其他"},{"ABOUT", "关于"},
+            {"Share FeeL", "分享Feel"},{"Rate FeeL", "评价Feel"},
+            {"Help", "帮助"},{"About", "更多"},{"Log Out", "退出登录"},
+            {"This is the detailed view for: ","此页为："},
+            {"Are you sure you want to log out?","你确定要退出登录吗？"},
+            {"Your Posts are private and ephemeral unless shared.", "除非进行分享，否则你的帖子是私密且短暂的。"}
+
+        }}
 };
 
 // current language
@@ -1739,6 +1751,13 @@ int main(int argc, char *argv[]) {
     contentStack->addWidget(chatContainer);
     contentStack->addWidget(postPageWidget);
 
+    // setting page
+    SettingWindow *settingPage = new SettingWindow();
+    contentStack->addWidget(settingPage);
+
+    DetailWindow *detailPage = new DetailWindow();
+    contentStack->addWidget(detailPage);
+
     QObject::connect(search, &QLineEdit::textChanged, &window, rebuildFriendsList);
 
     QObject::connect(postPage, &PostPage::backRequested, &window, [&]() {
@@ -1766,6 +1785,7 @@ int main(int argc, char *argv[]) {
                             translate("Friends"),
                             translate("Post"),
                             translate("Chat"),
+                            translate("Settings"),
                             translate("Profile")};
     for (const QString &item : navItems) {
         QPushButton *navButton = new QPushButton(item);
@@ -1814,8 +1834,26 @@ int main(int argc, char *argv[]) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(friendsPage);
             });
+        } else if (item == "Settings" || item == translate("Settings") || item == "设置" || item == "settings") {
+            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
+                settingPage->setUserProfile(myProfile);
+                contentStack->setCurrentWidget(settingPage);
+            });
         }
     }
+
+    QObject::connect(settingPage, &SettingWindow::backToHome, &window, [=]() {
+        contentStack->setCurrentWidget(homePage);
+    });
+
+    QObject::connect(settingPage, &SettingWindow::openDetail, &window, [=](const QString& title, const QString& category) {
+        detailPage->setupContent(title);
+        contentStack->setCurrentWidget(detailPage);
+    });
+
+    QObject::connect(detailPage, &DetailWindow::backClicked, &window, [=]() {
+        contentStack->setCurrentWidget(settingPage);
+    });
 
     // back from profile to friends
     QObject::connect(backToFriends, &QPushButton::clicked, &window, [=]() {
