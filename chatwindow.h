@@ -22,6 +22,7 @@ public:
     explicit ChatWindow(QWidget *parent = nullptr);
     void setThreads(const QList<FriendData> &friends);
     void openThreadByIndex(int index);
+    void sendShareMessage(int index, const QString &text = QStringLiteral("share message"));
 
 signals:
     void showProfile(const FriendData &f);
@@ -43,7 +44,8 @@ private:
     QVBoxLayout *listWrapLayout = nullptr;
 
     QList<FriendData> threads;
-    QList<Message> history;
+    QHash<int, QList<Message>> threadHistories;
+    int currentThreadIndex = -1;
 
     QWidget* buildThreadBubble(const Message &m);
     void rebuildThreadView();

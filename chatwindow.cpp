@@ -119,7 +119,9 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     QObject::connect(sendBtn, &QPushButton::clicked, this, [=]() {
         const QString text = input->text().trimmed();
         if (text.isEmpty()) return;
-        history.append({true, text});
+        if (currentThreadIndex >= 0) {
+            threadHistories[currentThreadIndex].append({true, text});
+        }
         rebuildThreadView();
         input->clear();
     });
@@ -225,14 +227,17 @@ void ChatWindow::rebuildThreadView() {
     }
 
     // rebuild the message bubble
-    for (const auto &m : history) {
-        threadLayout->addWidget(buildThreadBubble(m));
+    if (currentThreadIndex >= 0 && threadHistories.contains(currentThreadIndex)) {
+        for (const auto &m : threadHistories[currentThreadIndex]) {
+            threadLayout->addWidget(buildThreadBubble(m));
+        }
     }
     threadLayout->addStretch();
 }
 
 void ChatWindow::openThread(int index) {
     if (index < 0 || index >= threads.size()) return;
+    currentThreadIndex = index;
     const auto &f = threads.at(index);
     QPixmap pm = makeAvatarPixmap(f.avatar, 42);
     if (!pm.isNull()) {
@@ -243,11 +248,14 @@ void ChatWindow::openThread(int index) {
     threadTitle->setText(f.name);
     threadHandle->setText(f.handle);
 
-    history.clear();
-    history.append({false, translate("Hello!")});
-    history.append({true, translate("Hi there!")});
-    history.append({false, translate("How are you?")});
-    history.append({true, translate("I'm good, thanks!")});
+    if (!threadHistories.contains(index)) {
+        QList<Message> seed;
+        seed.append({false, translate("Hello!")});
+        seed.append({true, translate("Hi there!")});
+        seed.append({false, translate("How are you?")});
+        seed.append({true, translate("I'm good, thanks!")});
+        threadHistories.insert(index, seed);
+    }
     rebuildThreadView();
 
     stack->setCurrentWidget(threadPage);
@@ -255,6 +263,19 @@ void ChatWindow::openThread(int index) {
 
 void ChatWindow::openThreadByIndex(int index) {
     openThread(index);
+}
+
+void ChatWindow::sendShareMessage(int index, const QString &text) {
+    if (!threadHistories.contains(index)) {
+        threadHistories.insert(index, {});
+    }
+    const QString content = text.isEmpty() ? QStringLiteral("[shared message]") : text;
+    threadHistories[index].append({true, content});
+    if (currentThreadIndex != index) {
+        openThread(index);
+    } else {
+        rebuildThreadView();
+    }
 }
 
 QPixmap ChatWindow::makeAvatarPixmap(const QString &path, int size) {

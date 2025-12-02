@@ -23,6 +23,7 @@ SOURCES += \
         friendwindow.cpp \
         profilewindow.cpp \
         chatwindow.cpp \
+        postpage.cpp \
         FeeL.cpp
 
 HEADERS += \
@@ -31,6 +32,7 @@ HEADERS += \
     friendwindow.h \
     profilewindow.h \
     chatwindow.h \
+    postpage.h \
     friends_data.h
 
 RESOURCES += \
