@@ -16,48 +16,57 @@ extern QString translate(const QString& text);
 DetailWindow::DetailWindow(QWidget *parent)
     : QWidget(parent)
 {
-    setFixedSize(375, 667);
+    setMinimumSize(320, 480); // allow responsive resizing instead of a fixed phone size
 }
 
 void DetailWindow::setupContent(const QString& title)
 {
     m_title = title;
-    if (layout()) {
-        delete layout();
+    if (QLayout *old = layout()) {
+        QLayoutItem *item;
+        while ((item = old->takeAt(0)) != nullptr) {
+            if (QWidget *w = item->widget()) {
+                w->deleteLater();
+            }
+            delete item;
+        }
+        delete old;
     }
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(12, 12, 12, 12);
+    mainLayout->setSpacing(8);
 
     QWidget *header = new QWidget(this);
     header->setObjectName("header");
-    header->setStyleSheet("QWidget#header { background-color: #f8f8f8; }");
+    header->setStyleSheet("QWidget#header { background-color: transparent; }");
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
-    headerLayout->setContentsMargins(15, 15, 15, 15);
+    headerLayout->setContentsMargins(0, 0, 0, 0);
 
-    QPushButton *backBtn = new QPushButton("←", header);
+    QPushButton *backBtn = new QPushButton(QStringLiteral("‹"), header);
     backBtn->setObjectName("backBtn");
     backBtn->setStyleSheet(
         "QPushButton#backBtn {"
-        "    border: none;"
-        "    font-size: 20px;"
-        "    color: #333;"
-        "    background: transparent;"
+        "    padding: 6px 10px;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 12px;"
+        "    font-size: 18px;"
+        "    color: #0b0b0b;"
+        "    background: #ffffff;"
         "}"
         "QPushButton#backBtn:hover {"
-        "    color: #666;"
+        "    background: #f5f5f5;"
         "}"
         );
-    backBtn->setFixedSize(40, 40);
+    backBtn->setFixedSize(46, 36);
 
     QLabel *titleLabel = new QLabel(title, header);
     titleLabel->setObjectName("titleLabel");
     titleLabel->setStyleSheet(
         "QLabel#titleLabel {"
         "    font-size: 18px;"
-        "    font-weight: bold;"
-        "    color: #333;"
+        "    font-weight: 800;"
+        "    color: #0b0b0b;"
         "}"
         );
 
@@ -77,15 +86,15 @@ void DetailWindow::setupContent(const QString& title)
     scrollArea->setStyleSheet(
         "QScrollArea#scrollArea {"
         "    border: none;"
-        "    background: white;"
+        "    background: transparent;"
         "}"
         );
 
     QWidget *contentWidget = new QWidget();
     contentWidget->setObjectName("contentWidget");
     QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
-    contentLayout->setContentsMargins(20, 20, 20, 20);
-    contentLayout->setSpacing(15);
+    contentLayout->setContentsMargins(10, 6, 10, 10);
+    contentLayout->setSpacing(12);
 
     if (title == "Audio" || title == "音频") {
         setupAudioContent(contentLayout);
@@ -108,7 +117,7 @@ void DetailWindow::setupContent(const QString& title)
     } else {
         QLabel *defaultLabel = new QLabel("Settings for: " + title, contentWidget);
         defaultLabel->setWordWrap(true);
-        defaultLabel->setStyleSheet("font-size: 16px; color: #666;");
+        defaultLabel->setStyleSheet("font-size: 16px; color: #4d4d4d;");
         contentLayout->addWidget(defaultLabel);
     }
 
@@ -122,7 +131,7 @@ void DetailWindow::setupAudioContent(QVBoxLayout *layout)
     QWidget *parent = layout->parentWidget();
 
     QLabel *volumeLabel = new QLabel(translate("Volume"), parent);
-    volumeLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #333;");
+    volumeLabel->setStyleSheet("font-size: 16px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(volumeLabel);
 
     QSlider *volumeSlider = new QSlider(Qt::Horizontal, parent);
@@ -146,11 +155,11 @@ void DetailWindow::setupAudioContent(QVBoxLayout *layout)
     layout->addSpacing(20);
 
     QCheckBox *muteCheckbox = new QCheckBox(translate("Mute audio"), parent);
-    muteCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    muteCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(muteCheckbox);
 
     QCheckBox *autoPlayCheckbox = new QCheckBox(translate("Auto-play videos"), parent);
-    autoPlayCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    autoPlayCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(autoPlayCheckbox);
 }
 
@@ -160,38 +169,38 @@ void DetailWindow::setupNotificationsContent(QVBoxLayout *layout)
 
     QCheckBox *pushCheckbox = new QCheckBox(translate("Push notifications"), parent);
     pushCheckbox->setChecked(true);
-    pushCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    pushCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(pushCheckbox);
 
     QCheckBox *soundCheckbox = new QCheckBox(translate("Sound"), parent);
     soundCheckbox->setChecked(true);
-    soundCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    soundCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(soundCheckbox);
 
     QCheckBox *vibrateCheckbox = new QCheckBox(translate("Vibrate"), parent);
     vibrateCheckbox->setChecked(true);
-    vibrateCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    vibrateCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(vibrateCheckbox);
 
     layout->addSpacing(20);
 
     QLabel *typesLabel = new QLabel(translate("Notification types"), parent);
-    typesLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #333;");
+    typesLabel->setStyleSheet("font-size: 16px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(typesLabel);
 
     QCheckBox *likeCheckbox = new QCheckBox(translate("Likes"), parent);
     likeCheckbox->setChecked(true);
-    likeCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    likeCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(likeCheckbox);
 
     QCheckBox *commentCheckbox = new QCheckBox(translate("Comments"), parent);
     commentCheckbox->setChecked(true);
-    commentCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    commentCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(commentCheckbox);
 
     QCheckBox *followCheckbox = new QCheckBox(translate("New followers"), parent);
     followCheckbox->setChecked(true);
-    followCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    followCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(followCheckbox);
 }
 
@@ -200,7 +209,7 @@ void DetailWindow::setupPrivacyContent(QVBoxLayout *layout)
     QWidget *parent = layout->parentWidget();
 
     QLabel *accountLabel = new QLabel(translate("Account privacy"), parent);
-    accountLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #333;");
+    accountLabel->setStyleSheet("font-size: 16px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(accountLabel);
 
     QComboBox *privacyCombo = new QComboBox(parent);
@@ -209,8 +218,9 @@ void DetailWindow::setupPrivacyContent(QVBoxLayout *layout)
         "QComboBox {"
         "    padding: 10px;"
         "    font-size: 16px;"
-        "    border: 1px solid #ddd;"
+        "    border: none;"
         "    border-radius: 8px;"
+        "    background: #f5f5f5;"
         "}"
         );
     layout->addWidget(privacyCombo);
@@ -218,11 +228,11 @@ void DetailWindow::setupPrivacyContent(QVBoxLayout *layout)
     layout->addSpacing(20);
 
     QCheckBox *hideProfileCheckbox = new QCheckBox(translate("Hide profile from search"), parent);
-    hideProfileCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    hideProfileCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(hideProfileCheckbox);
 
     QCheckBox *hideActivityCheckbox = new QCheckBox(translate("Hide activity status"), parent);
-    hideActivityCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    hideActivityCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(hideActivityCheckbox);
 }
 
@@ -231,7 +241,7 @@ void DetailWindow::setupTimezoneContent(QVBoxLayout *layout)
     QWidget *parent = layout->parentWidget();
 
     QLabel *timezoneLabel = new QLabel(translate("Select time zone"), parent);
-    timezoneLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #333;");
+    timezoneLabel->setStyleSheet("font-size: 16px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(timezoneLabel);
 
     QComboBox *timezoneCombo = new QComboBox(parent);
@@ -240,8 +250,9 @@ void DetailWindow::setupTimezoneContent(QVBoxLayout *layout)
         "QComboBox {"
         "    padding: 10px;"
         "    font-size: 16px;"
-        "    border: 1px solid #ddd;"
+        "    border: none;"
         "    border-radius: 8px;"
+        "    background: #f5f5f5;"
         "}"
         );
     layout->addWidget(timezoneCombo);
@@ -250,7 +261,7 @@ void DetailWindow::setupTimezoneContent(QVBoxLayout *layout)
 
     QCheckBox *autoTimezoneCheckbox = new QCheckBox(translate("Auto-detect time zone"), parent);
     autoTimezoneCheckbox->setChecked(true);
-    autoTimezoneCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #333; }");
+    autoTimezoneCheckbox->setStyleSheet("QCheckBox { font-size: 16px; color: #0b0b0b; }");
     layout->addWidget(autoTimezoneCheckbox);
 }
 
@@ -264,13 +275,13 @@ void DetailWindow::setupOtherContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(clearCacheButton);
@@ -281,13 +292,13 @@ void DetailWindow::setupOtherContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(dataUsageButton);
@@ -299,13 +310,13 @@ void DetailWindow::setupOtherContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QToolButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(languageBtn);
@@ -332,7 +343,7 @@ void DetailWindow::setupShareContent(QVBoxLayout *layout)
 
     QLabel *description = new QLabel(translate("Share FeeL with your friends and family!"), parent);
     description->setWordWrap(true);
-    description->setStyleSheet("font-size: 16px; color: #666; line-height: 1.5;");
+    description->setStyleSheet("font-size: 15px; color: #4d4d4d; line-height: 1.5;");
     layout->addWidget(description);
 
     layout->addSpacing(30);
@@ -343,13 +354,13 @@ void DetailWindow::setupShareContent(QVBoxLayout *layout)
         "    padding: 15px;"
         "    font-size: 16px;"
         "    font-weight: bold;"
-        "    color: white;"
-        "    background: #007aff;"
-        "    border: none;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #0056cc;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(shareButton);
@@ -361,7 +372,7 @@ void DetailWindow::setupRateContent(QVBoxLayout *layout)
 
     QLabel *description = new QLabel(translate("If you enjoy using FeeL, please take a moment to rate us. Your feedback helps us improve!"), parent);
     description->setWordWrap(true);
-    description->setStyleSheet("font-size: 16px; color: #666; line-height: 1.5;");
+    description->setStyleSheet("font-size: 15px; color: #4d4d4d; line-height: 1.5;");
     layout->addWidget(description);
 
     layout->addSpacing(30);
@@ -372,13 +383,13 @@ void DetailWindow::setupRateContent(QVBoxLayout *layout)
         "    padding: 15px;"
         "    font-size: 16px;"
         "    font-weight: bold;"
-        "    color: white;"
-        "    background: #007aff;"
-        "    border: none;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #0056cc;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(rateButton);
@@ -389,7 +400,7 @@ void DetailWindow::setupHelpContent(QVBoxLayout *layout)
     QWidget *parent = layout->parentWidget();
 
     QLabel *title = new QLabel(translate("Help & Support"), parent);
-    title->setStyleSheet("font-size: 18px; font-weight: bold; color: #333;");
+    title->setStyleSheet("font-size: 18px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(title);
 
     layout->addSpacing(20);
@@ -400,13 +411,13 @@ void DetailWindow::setupHelpContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(faqButton);
@@ -417,13 +428,13 @@ void DetailWindow::setupHelpContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(contactButton);
@@ -434,13 +445,13 @@ void DetailWindow::setupHelpContent(QVBoxLayout *layout)
         "    text-align: left;"
         "    padding: 15px;"
         "    font-size: 16px;"
-        "    color: #333;"
-        "    background: white;"
-        "    border: 1px solid #ddd;"
-        "    border-radius: 10px;"
+        "    color: #0b0b0b;"
+        "    background: transparent;"
+        "    border: 2px solid #0b0b0b;"
+        "    border-radius: 14px;"
         "}"
         "QPushButton:hover {"
-        "    background: #f9f9f9;"
+        "    background: #f7f7f7;"
         "}"
         );
     layout->addWidget(reportButton);
@@ -451,23 +462,23 @@ void DetailWindow::setupAboutContent(QVBoxLayout *layout)
     QWidget *parent = layout->parentWidget();
 
     QLabel *title = new QLabel(translate("About FeeL"), parent);
-    title->setStyleSheet("font-size: 18px; font-weight: bold; color: #333;");
+    title->setStyleSheet("font-size: 18px; font-weight: 800; color: #0b0b0b;");
     layout->addWidget(title);
 
     layout->addSpacing(20);
 
     QLabel *version = new QLabel(translate("Version: 1.0.0"), parent);
-    version->setStyleSheet("font-size: 16px; color: #666;");
+    version->setStyleSheet("font-size: 16px; color: #4d4d4d;");
     layout->addWidget(version);
 
-    QLabel *build = new QLabel(translate("Build: 2024.12.1"), parent);
-    build->setStyleSheet("font-size: 16px; color: #666;");
+    QLabel *build = new QLabel(translate("Build: 2025.12.1"), parent);
+    build->setStyleSheet("font-size: 16px; color: #4d4d4d;");
     layout->addWidget(build);
 
     layout->addSpacing(20);
 
     QLabel *description = new QLabel(translate("FeeL is a social video platform that allows users to share and discover authentic moments with friends and the community."), parent);
     description->setWordWrap(true);
-    description->setStyleSheet("font-size: 16px; color: #666; line-height: 1.5;");
+    description->setStyleSheet("font-size: 15px; color: #4d4d4d; line-height: 1.5;");
     layout->addWidget(description);
 }

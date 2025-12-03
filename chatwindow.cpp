@@ -71,7 +71,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     header->setSpacing(10);
     threadAvatar = new QLabel();
     threadAvatar->setFixedSize(42, 42);
-    threadAvatar->setStyleSheet("border:2px solid #0b0b0b; border-radius:21px;");
+    threadAvatar->setStyleSheet("border:none; border-radius:21px;");
     header->addWidget(threadAvatar);
 
     QVBoxLayout *headerText = new QVBoxLayout();
@@ -109,7 +109,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     inputRow->setSpacing(8);
     input = new QLineEdit();
     input->setPlaceholderText(translate("Message"));
-    input->setStyleSheet("padding:10px; border:2px solid #0b0b0b; border-radius:14px;");
+    input->setStyleSheet("padding:10px; border:none; border-radius:14px; background:#f5f5f5;");
     QPushButton *sendBtn = new QPushButton(translate("Send"));
     sendBtn->setStyleSheet("padding:10px 16px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
     inputRow->addWidget(input);
@@ -145,7 +145,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
     for (int i = 0; i < threads.size(); ++i) {
         const auto &f = threads[i];
         QFrame *card = new QFrame();
-        card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:16px; }");
+        card->setStyleSheet("QFrame { background:#ffffff; border-radius:16px; }");
         QHBoxLayout *cardLayout = new QHBoxLayout(card);
         cardLayout->setContentsMargins(10, 10, 10, 10);
         cardLayout->setSpacing(10);
@@ -154,7 +154,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
         avatarBtn->setFlat(true);
         avatarBtn->setFixedSize(48, 48);
         avatarBtn->setIconSize(QSize(48, 48));
-        avatarBtn->setStyleSheet("border:2px solid #0b0b0b; border-radius:24px; background:#ffffff;");
+        avatarBtn->setStyleSheet("border:none; border-radius:24px; background:#ffffff;");
         QPixmap pm = makeAvatarPixmap(f.avatar, 48);
         if (!pm.isNull()) avatarBtn->setIcon(QIcon(pm));
         cardLayout->addWidget(avatarBtn);
@@ -204,7 +204,7 @@ QWidget* ChatWindow::buildThreadBubble(const Message &m) {
     QLabel *bubble = new QLabel(m.text);
     bubble->setWordWrap(true);
     bubble->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    bubble->setStyleSheet(QString("padding:10px 14px; border-radius:16px; border:2px solid #0b0b0b; background:%1;")
+    bubble->setStyleSheet(QString("padding:10px 14px; border-radius:16px; background:%1;")
                           .arg(m.outgoing ? "#ffffff" : "#f2f2f2"));
 
     if (m.outgoing) {

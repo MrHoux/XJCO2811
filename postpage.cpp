@@ -12,10 +12,10 @@ PostPage::PostPage(QWidget *parent) : QWidget(parent) {
 
     QHBoxLayout *top = new QHBoxLayout();
     QPushButton *back = new QPushButton(QStringLiteral("ˇ"));
-    back->setFixedSize(32, 24);
-    back->setStyleSheet("padding:4px; border:2px solid #0b0b0b; border-radius:8px; background:#ffffff;");
+    back->setFixedSize(36, 28);
+    back->setStyleSheet("padding:6px 8px; border:2px solid #0b0b0b; border-radius:10px; background:#ffffff; font-size:16px; font-weight:700;");
     connect(back, &QPushButton::clicked, this, &PostPage::backRequested);
-    QLabel *title = new QLabel(QStringLiteral("BeReal."));
+    QLabel *title = new QLabel(QStringLiteral("FeeL."));
     title->setStyleSheet("font-size:18px; font-weight:700;");
     top->addWidget(back, 0, Qt::AlignLeft);
     top->addStretch();
@@ -25,7 +25,7 @@ PostPage::PostPage(QWidget *parent) : QWidget(parent) {
 
     QFrame *preview = new QFrame();
     preview->setMinimumHeight(260);
-    preview->setStyleSheet("background:#cfcfcf; border:2px solid #0b0b0b; border-radius:20px;");
+    preview->setStyleSheet("background:#cfcfcf; border-radius:20px;");
     QVBoxLayout *previewLayout = new QVBoxLayout(preview);
     previewLayout->setContentsMargins(0, 0, 0, 0);
     previewLayout->addStretch();
@@ -123,7 +123,7 @@ void PostPage::showAlbumOverlay() {
     QVBoxLayout *outer = new QVBoxLayout(albumOverlay);
     outer->setContentsMargins(16, 16, 16, 16);
     QFrame *panel = new QFrame();
-    panel->setStyleSheet("background:#ffffff; border:2px solid #0b0b0b; border-radius:16px;");
+    panel->setStyleSheet("background:#ffffff; border-radius:16px;");
     QVBoxLayout *p = new QVBoxLayout(panel);
     p->setSpacing(10);
     p->setContentsMargins(16, 16, 16, 16);
@@ -168,7 +168,7 @@ void PostPage::showPublishOverlay(bool isVideo) {
     QVBoxLayout *outer = new QVBoxLayout(confirmOverlay);
     outer->setContentsMargins(16, 16, 16, 16);
     QFrame *panel = new QFrame();
-    panel->setStyleSheet("background:#ffffff; border:2px solid #0b0b0b; border-radius:18px;");
+    panel->setStyleSheet("background:#ffffff; border-radius:18px;");
     QVBoxLayout *p = new QVBoxLayout(panel);
     p->setSpacing(12);
     p->setContentsMargins(16, 16, 16, 16);
@@ -177,7 +177,7 @@ void PostPage::showPublishOverlay(bool isVideo) {
     p->addWidget(title);
     QLabel *preview = new QLabel();
     preview->setMinimumHeight(200);
-    preview->setStyleSheet("background:#cfcfcf; border:2px solid #0b0b0b; border-radius:16px;");
+    preview->setStyleSheet("background:#cfcfcf; border-radius:16px;");
     preview->setAlignment(Qt::AlignCenter);
     preview->setText(isVideo ? translate("Video") : translate("Photo"));
     p->addWidget(preview);

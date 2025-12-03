@@ -20,6 +20,7 @@ signals:
     void backToHome();
     void openDetail(const QString& title, const QString& category);
     void languageSelected(const QString& langCode);
+    void shareProfileRequested();
 // private slots:
 //     void onButtonClicked();
 

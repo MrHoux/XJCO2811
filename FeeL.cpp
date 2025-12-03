@@ -1,14 +1,4 @@
-﻿//
-//    ______
-//   /_  __/___  ____ ___  ___  ____
-//    / / / __ \/ __ `__ \/ _ \/ __ \
-//   / / / /_/ / / / / / /  __/ /_/ /
-//  /_/  \____/_/ /_/ /_/\___/\____/
-//              video for sports enthusiasts...
-//
-//
-
-// #include <iostream>
+﻿// #include <iostream>
 // #include <algorithm>
 #include <algorithm>
 #include <QApplication>
@@ -52,6 +42,9 @@
 #include <QtCore/QString>
 #include <QEvent>
 #include <QMouseEvent>
+#include <QSlider>
+#include <QComboBox>
+#include <QtCore/QObject>
 #include "chatwindow.h"
 #include "the_button.h"
 #include "friends_data.h"
@@ -360,25 +353,6 @@ int main(int argc, char *argv[]) {
     window.setWindowTitle("FeeL");
     window.setMinimumSize(520, 900);
 
-    auto makeLanguageButton = [&](QWidget *parent) -> QToolButton* {
-        QToolButton *btn = new QToolButton(parent);
-        btn->setText("A");
-        btn->setToolTip(translate("Language"));
-        btn->setPopupMode(QToolButton::InstantPopup);
-        btn->setStyleSheet("QToolButton { padding:8px 12px; border:1px solid #101010; border-radius:12px; background:#ffffff; font-weight:700; }");
-        QMenu *menu = new QMenu(btn);
-        QAction* englishAction = menu->addAction("English");
-        QAction* chineseAction = menu->addAction("中文");
-        QObject::connect(englishAction, &QAction::triggered, [&]() {
-            switchLanguage("en");
-        });
-        QObject::connect(chineseAction, &QAction::triggered, [&]() {
-            switchLanguage("zh");
-        });
-        btn->setMenu(menu);
-        return btn;
-    };
-
     QHBoxLayout *root = new QHBoxLayout();
     root->setContentsMargins(40, 50, 40, 30);
     root->addStretch();
@@ -425,7 +399,7 @@ int main(int argc, char *argv[]) {
     // QFrame *phone = new QFrame();
     phone->setObjectName(translate("phoneFrame"));
     phone->setMinimumWidth(360);
-    phone->setStyleSheet("#phoneFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:46px; }");
+    phone->setStyleSheet("#phoneFrame { background:#ffffff; border-radius:46px; }");
     QVBoxLayout *phoneLayout = new QVBoxLayout(phone);
     phoneLayout->setSpacing(12);
     phoneLayout->setContentsMargins(28, 28, 28, 20);
@@ -643,6 +617,7 @@ int main(int argc, char *argv[]) {
     QWidget *postPageWidget = nullptr;
     QWidget *lastPageBeforePost = nullptr;
     QWidget *activeOverlay = nullptr;
+    QToolButton *profileSettingsBtn = nullptr;
     QList<FriendData> currentFriends;
     QList<FriendData> currentPopular;
     QHash<QString, FriendData> friendLookup;
@@ -730,21 +705,24 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *profileLayout = new QVBoxLayout(profilePage);
     profileLayout->setContentsMargins(16, 16, 16, 16);
     profileLayout->setSpacing(16);
-    {
-        QHBoxLayout *langBar = new QHBoxLayout();
-        langBar->setContentsMargins(0, 0, 0, 0);
-        langBar->addStretch();
-        langBar->addWidget(makeLanguageButton(profilePage));
-        profileLayout->addLayout(langBar);
-    }
     QPushButton *backToFriends = new QPushButton(translate("Friends"));
     backToFriends->setStyleSheet("padding:8px 16px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:600;");
-    profileLayout->addWidget(backToFriends, 0, Qt::AlignLeft);
+    QHBoxLayout *profileTop = new QHBoxLayout();
+    profileTop->setContentsMargins(0, 0, 0, 0);
+    profileTop->addWidget(backToFriends, 0, Qt::AlignLeft);
+    profileTop->addStretch();
+    profileSettingsBtn = new QToolButton();
+    profileSettingsBtn->setText(QStringLiteral("⚙"));
+    profileSettingsBtn->setToolTip(translate("Settings"));
+    profileSettingsBtn->setFixedSize(38, 38);
+    profileSettingsBtn->setStyleSheet("QToolButton { padding:6px; border:2px solid #0b0b0b; border-radius:12px; background:#ffffff; font-weight:700; }");
+    profileTop->addWidget(profileSettingsBtn, 0, Qt::AlignRight);
+    profileLayout->addLayout(profileTop);
 
     QLabel *profileAvatar = new QLabel();
     profileAvatar->setFixedSize(160, 160);
     profileAvatar->setAlignment(Qt::AlignCenter);
-    profileAvatar->setStyleSheet("background:#d7d7d7; border-radius:80px; border:2px solid #0b0b0b;");
+    profileAvatar->setStyleSheet("background:#d7d7d7; border-radius:80px;");
     profileLayout->addWidget(profileAvatar, 0, Qt::AlignHCenter);
 
     QLabel *profileName = new QLabel(translate("Guest"));
@@ -758,7 +736,7 @@ int main(int argc, char *argv[]) {
 
     QLabel *profileFollowStatus = new QLabel();
     profileFollowStatusLabel = profileFollowStatus;
-    profileFollowStatus->setStyleSheet("font-size:13px; color:#444; border:2px solid #0b0b0b; border-radius:12px; padding:6px 10px; background:#ffffff;");
+    profileFollowStatus->setStyleSheet("font-size:13px; color:#444; border:none; border-radius:12px; padding:6px 10px; background:transparent;");
     profileLayout->addWidget(profileFollowStatus, 0, Qt::AlignHCenter);
     QHBoxLayout *statsRow = new QHBoxLayout();
     statsRow->setSpacing(28);
@@ -850,7 +828,7 @@ int main(int argc, char *argv[]) {
         for (const QString &img : gallery) {
             QLabel *thumb = new QLabel();
             thumb->setFixedSize(160, 180);
-            thumb->setStyleSheet("border-radius:24px; background:#f3f3f3; border:2px solid #0b0b0b;");
+            thumb->setStyleSheet("border-radius:24px; background:#f3f3f3;");
             QPixmap pm(img);
             if (!pm.isNull()) {
                 thumb->setPixmap(pm.scaled(160, 180, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
@@ -952,7 +930,7 @@ int main(int argc, char *argv[]) {
 
     auto createPhoneCard = [&](TheButtonInfo* info, const FriendData &account, bool autoPlay) -> FeedCard {
         QFrame *card = new QFrame();
-        card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #101010; border-radius:28px; }");
+        card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:28px; }");
         QVBoxLayout *cardLayout = new QVBoxLayout(card);
         cardLayout->setSpacing(12);
         cardLayout->setContentsMargins(18, 18, 18, 18);
@@ -970,7 +948,7 @@ int main(int argc, char *argv[]) {
         if (info != nullptr && info->url && info->url->isValid()) {
             cardVideo = new QVideoWidget(card);
             cardVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            cardVideo->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#050505;");
+            cardVideo->setStyleSheet("border:none; border-radius:16px; background:#050505;");
             cardPlayer = new QMediaPlayer(cardVideo);
             QMediaPlaylist *loop = new QMediaPlaylist(cardPlayer);
             loop->addMedia(*info->url);
@@ -996,7 +974,7 @@ int main(int argc, char *argv[]) {
         } else {
             QFrame *placeholder = new QFrame();
             placeholder->setMinimumHeight(200);
-            placeholder->setStyleSheet("border:2px solid #101010; border-radius:16px; background:#f7f7f7;");
+            placeholder->setStyleSheet("border-radius:16px; background:#f7f7f7;");
             QLabel *videoText = new QLabel(translate("New Post"), placeholder);
             videoText->setAlignment(Qt::AlignCenter);
             videoText->setStyleSheet("font-size:18px; letter-spacing:2px; color:#7a7a7a; font-weight:700;");
@@ -1020,7 +998,7 @@ int main(int argc, char *argv[]) {
         if (!avatar.isNull()) {
             avatarBtn->setIcon(QIcon(avatar));
         }
-        avatarBtn->setStyleSheet("border:2px solid #101010; border-radius:22px; background:#fdfdfd;");
+        avatarBtn->setStyleSheet("border-radius:22px; background:#fdfdfd;");
         QObject::connect(avatarBtn, &QPushButton::clicked, &window, goProfile);
 
         QVBoxLayout *profileText = new QVBoxLayout();
@@ -1050,7 +1028,7 @@ int main(int argc, char *argv[]) {
 
         QFrame *line = new QFrame();
         line->setFrameShape(QFrame::HLine);
-        line->setStyleSheet("color:#cfcfcf;");
+        line->setStyleSheet("color:#e5e5e5;");
         cardLayout->addWidget(line);
 
         QHBoxLayout *statsRow = new QHBoxLayout();
@@ -1077,7 +1055,7 @@ int main(int argc, char *argv[]) {
 
         QFrame *commentLine = new QFrame();
         commentLine->setFrameShape(QFrame::HLine);
-        commentLine->setStyleSheet("color:#e4e4e4;");
+        commentLine->setStyleSheet("color:#ededed;");
         cardLayout->addWidget(commentLine);
 
         QVBoxLayout *commentSection = new QVBoxLayout();
@@ -1093,7 +1071,7 @@ int main(int argc, char *argv[]) {
 
         QLineEdit *commentInput = new QLineEdit();
         commentInput->setPlaceholderText(translate("Add a comment..."));
-        commentInput->setStyleSheet("padding:8px 10px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff;");
+        commentInput->setStyleSheet("padding:8px 10px; border:none; border-radius:14px; background:#f6f6f6;");
         commentSection->addWidget(commentInput);
 
         auto addComment = [=]() {
@@ -1188,7 +1166,7 @@ int main(int argc, char *argv[]) {
 
         QFrame *panel = new QFrame();
         panel->setObjectName(translate("detailPanel"));
-        panel->setStyleSheet("#detailPanel { background:#ffffff; border:2px solid #0b0b0b; border-radius:24px; }");
+        panel->setStyleSheet("#detailPanel { background:#ffffff; border-radius:24px; }");
         panel->setFixedSize(w, h);
         QVBoxLayout *panelLayout = new QVBoxLayout(panel);
         panelLayout->setSpacing(16);
@@ -1197,6 +1175,60 @@ int main(int argc, char *argv[]) {
         QWidget *videoWrap = nullptr;
         QMediaPlayer *modalPlayer = nullptr;
         bool hasVideo = fc.info != nullptr;
+        QHBoxLayout *mediaControls = nullptr;
+        QSlider *progressControl = nullptr;
+        QSlider *volumeControl = nullptr;
+        QComboBox *speedControl = nullptr;
+        auto attachVideoControls = [](QMediaPlayer *player, QSlider *progress, QSlider *volume, QComboBox *speed, QToolButton *muteBtn = nullptr) {
+            if (!player) return;
+            QPointer<QMediaPlayer> p(player);
+            if (muteBtn) {
+                muteBtn->setCheckable(true);
+                auto updateMuteVisual = [p, muteBtn]() {
+                    if (!p || !muteBtn) return;
+                    const bool muted = p->isMuted();
+                    muteBtn->setChecked(muted);
+                    muteBtn->setText(muted ? QStringLiteral("🔇") : QStringLiteral("🔊"));
+                };
+                updateMuteVisual();
+                QObject::connect(muteBtn, &QToolButton::toggled, muteBtn, [p](bool on) {
+                    if (p) p->setMuted(on);
+                });
+                QObject::connect(p, &QMediaPlayer::mutedChanged, muteBtn, updateMuteVisual);
+            }
+            if (progress) {
+                const qint64 curDur = p ? p->duration() : 0;
+                progress->setRange(0, static_cast<int>(curDur));
+                progress->setValue(p ? static_cast<int>(p->position()) : 0);
+                progress->setEnabled(curDur > 0);
+                auto sliding = std::make_shared<bool>(false);
+                QObject::connect(progress, &QSlider::sliderPressed, progress, [sliding]() { *sliding = true; });
+                QObject::connect(progress, &QSlider::sliderReleased, progress, [p, progress, sliding]() {
+                    *sliding = false;
+                    if (p) p->setPosition(progress->value());
+                });
+                QObject::connect(p, &QMediaPlayer::durationChanged, progress, [progress](qint64 dur) {
+                    progress->setRange(0, static_cast<int>(dur));
+                });
+                QObject::connect(p, &QMediaPlayer::positionChanged, progress, [p, progress, sliding](qint64 pos) {
+                    if (!p) return;
+                    if (!*sliding) progress->setValue(static_cast<int>(pos));
+                    progress->setEnabled(progress->maximum() > 0);
+                });
+            }
+            if (volume) {
+                volume->setRange(0, 100);
+                volume->setValue(p ? p->volume() : 0);
+                QObject::connect(volume, &QSlider::valueChanged, volume, [p](int v) { if (p) p->setVolume(v); });
+            }
+            if (speed) {
+                QObject::connect(speed, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), speed, [p, speed](int idx) {
+                    if (!p) return;
+                    const QVariant val = speed->itemData(idx);
+                    p->setPlaybackRate(val.isValid() ? val.toFloat() : 1.0f);
+                });
+            }
+        };
         struct FullscreenState {
             QPointer<QWidget> overlayLayer;
             QPointer<QWidget> videoContainer;
@@ -1216,9 +1248,10 @@ int main(int argc, char *argv[]) {
             videoLayout->setContentsMargins(0, 0, 0, 0);
             QVideoWidget *modalVideo = new QVideoWidget(videoContainer);
             modalVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            modalVideo->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#050505;");
+            modalVideo->setStyleSheet("border:none; border-radius:14px; background:#050505;");
             videoLayout->addWidget(modalVideo);
             modalPlayer = new QMediaPlayer(modalVideo);
+            modalPlayer->setNotifyInterval(200);
             QMediaPlaylist *loop = new QMediaPlaylist(modalPlayer);
             loop->addMedia(*fc.info->url);
             loop->setPlaybackMode(QMediaPlaylist::Loop);
@@ -1226,6 +1259,34 @@ int main(int argc, char *argv[]) {
             modalPlayer->setVideoOutput(modalVideo);
             modalPlayer->play();
             videoWrap = videoContainer;
+
+            mediaControls = new QHBoxLayout();
+            mediaControls->setContentsMargins(0, 0, 0, 0);
+            mediaControls->setSpacing(8);
+            progressControl = new QSlider(Qt::Horizontal);
+            progressControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
+                                           "QSlider::handle:horizontal { background:#0b0b0b; width:12px; margin:-6px 0; border-radius:6px; }");
+            QLabel *volIcon = new QLabel(QStringLiteral("🔊"));
+            volIcon->setStyleSheet("font-weight:800; color:#0b0b0b;");
+            QToolButton *volBtn = new QToolButton();
+            volBtn->setText(QStringLiteral("🔊"));
+            volBtn->setStyleSheet("QToolButton { border:none; padding:4px; font-size:14px; }");
+            volumeControl = new QSlider(Qt::Horizontal);
+            volumeControl->setFixedWidth(60);
+            volumeControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
+                                         "QSlider::handle:horizontal { background:#0b0b0b; width:10px; margin:-6px 0; border-radius:5px; }");
+            speedControl = new QComboBox();
+            speedControl->addItem("0.5x", 0.5);
+            speedControl->addItem("1.0x", 1.0);
+            speedControl->addItem("1.25x", 1.25);
+            speedControl->addItem("1.5x", 1.5);
+            speedControl->setCurrentIndex(1);
+            speedControl->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #0b0b0b; border-radius:10px; background:#ffffff; }");
+            mediaControls->addWidget(progressControl, 1);
+            mediaControls->addWidget(volBtn, 0, Qt::AlignVCenter);
+            mediaControls->addWidget(volumeControl, 0, Qt::AlignVCenter);
+            attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl, volBtn);
+            mediaControls->addWidget(speedControl, 0, Qt::AlignVCenter);
 
             fullscreenState = std::make_shared<FullscreenState>();
             fullscreenState->videoContainer = videoContainer;
@@ -1252,7 +1313,7 @@ int main(int argc, char *argv[]) {
                 if (fullscreenState->player) fullscreenState->player->play();
             };
 
-            enterFullScreen = [fullscreenState, overlay, exitFullScreen]() {
+            enterFullScreen = [fullscreenState, overlay, exitFullScreen, attachVideoControls]() {
                 if (!fullscreenState->videoContainer || !fullscreenState->hostPanel || !fullscreenState->hostLayout) return;
                 if (fullscreenState->overlayLayer) return;
 
@@ -1274,12 +1335,39 @@ int main(int argc, char *argv[]) {
                 fullscreenState->videoContainer->setParent(layer);
                 fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
                 layout->addWidget(fullscreenState->videoContainer, 1);
+                QHBoxLayout *controlBar = new QHBoxLayout();
+                controlBar->setContentsMargins(0, 0, 0, 0);
+                controlBar->setSpacing(10);
+                QSlider *fsProgress = new QSlider(Qt::Horizontal);
+                fsProgress->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
+                                          "QSlider::handle:horizontal { background:#ffffff; width:14px; margin:-6px 0; border-radius:7px; }");
+                QToolButton *fsVolBtn = new QToolButton();
+                fsVolBtn->setText(QStringLiteral("🔊"));
+                fsVolBtn->setStyleSheet("QToolButton { border: none; padding:4px; font-size:14px; color:#ffffff; }");
+                QSlider *fsVolume = new QSlider(Qt::Horizontal);
+                fsVolume->setFixedWidth(80);
+                fsVolume->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
+                                        "QSlider::handle:horizontal { background:#ffffff; width:12px; margin:-6px 0; border-radius:6px; }");
+                QComboBox *fsSpeed = new QComboBox();
+                fsSpeed->addItem("0.5x", 0.5);
+                fsSpeed->addItem("1.0x", 1.0);
+                fsSpeed->addItem("1.25x", 1.25);
+                fsSpeed->addItem("1.5x", 1.5);
+                fsSpeed->setCurrentIndex(1);
+                fsSpeed->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #ffffff; border-radius:10px; background:rgba(0,0,0,140); color:#ffffff; }");
+                controlBar->addWidget(fsProgress, 1);
+                controlBar->addWidget(fsVolBtn, 0, Qt::AlignVCenter);
+                controlBar->addWidget(fsVolume, 0, Qt::AlignVCenter);
+                controlBar->addWidget(fsSpeed, 0, Qt::AlignVCenter);
                 QHBoxLayout *bottom = new QHBoxLayout();
+                bottom->setContentsMargins(0, 0, 0, 0);
+                bottom->addLayout(controlBar, 1);
                 bottom->addStretch();
                 QPushButton *exitBtn = new QPushButton(translate("Back"), layer);
                 exitBtn->setStyleSheet("padding:10px 14px; border:2px solid #ffffff; border-radius:14px; background:rgba(0,0,0,160); color:#ffffff; font-weight:700;");
                 bottom->addWidget(exitBtn, 0, Qt::AlignRight | Qt::AlignBottom);
                 layout->addLayout(bottom);
+                attachVideoControls(fullscreenState->player, fsProgress, fsVolume, fsSpeed, fsVolBtn);
                 QObject::connect(exitBtn, &QPushButton::clicked, layer, [=]() {
                     exitFullScreen();
                 });
@@ -1292,13 +1380,14 @@ int main(int argc, char *argv[]) {
         } else {
             QFrame *ph = new QFrame();
             ph->setMinimumHeight(static_cast<int>(h * 0.4));
-            ph->setStyleSheet("border:1px solid #0b0b0b; border-radius:14px; background:#f5f5f5;");
+            ph->setStyleSheet("border:none; border-radius:14px; background:#f5f5f5;");
             QLabel *txt = new QLabel(translate("No video"), ph);
             txt->setAlignment(Qt::AlignCenter);
             txt->setStyleSheet("color:#7a7a7a; font-weight:700;");
             videoWrap = ph;
         }
         panelLayout->addWidget(videoWrap);
+        attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl);
 
         QHBoxLayout *userRow = new QHBoxLayout();
         userRow->setSpacing(10);
@@ -1318,7 +1407,15 @@ int main(int argc, char *argv[]) {
         userText->addWidget(handle);
         userRow->addLayout(userText);
         userRow->addStretch();
-        panelLayout->addLayout(userRow);
+        QHBoxLayout *infoAndControls = new QHBoxLayout();
+        infoAndControls->setContentsMargins(0, 0, 0, 0);
+        infoAndControls->setSpacing(12);
+        infoAndControls->addLayout(userRow);
+        infoAndControls->addStretch();
+        if (mediaControls) {
+            infoAndControls->addLayout(mediaControls, 1);
+        }
+        panelLayout->addLayout(infoAndControls);
 
         QHBoxLayout *actionRow = new QHBoxLayout();
         actionRow->setSpacing(12);
@@ -1428,13 +1525,6 @@ int main(int argc, char *argv[]) {
     QWidget *homePage = new QWidget();
     QVBoxLayout *homeLayout = new QVBoxLayout(homePage);
     homeLayout->setContentsMargins(0, 0, 0, 0);
-    {
-        QHBoxLayout *langBar = new QHBoxLayout();
-        langBar->setContentsMargins(0, 0, 0, 0);
-        langBar->addStretch();
-        langBar->addWidget(makeLanguageButton(homePage));
-        homeLayout->addLayout(langBar);
-    }
     QScrollArea *feedArea = new QScrollArea();
     feedArea->setFrameShape(QFrame::NoFrame);
     feedArea->setWidgetResizable(true);
@@ -1577,13 +1667,6 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsPage);
     friendsLayout->setContentsMargins(12, 12, 12, 12);
     friendsLayout->setSpacing(12);
-    {
-        QHBoxLayout *langBar = new QHBoxLayout();
-        langBar->setContentsMargins(0, 0, 0, 0);
-        langBar->addStretch();
-        langBar->addWidget(makeLanguageButton(friendsPage));
-        friendsLayout->addLayout(langBar);
-    }
     QScrollArea *friendsArea = new QScrollArea();
     friendsArea->setFrameShape(QFrame::NoFrame);
     friendsArea->setWidgetResizable(true);
@@ -1595,7 +1678,7 @@ int main(int argc, char *argv[]) {
     QLineEdit *search = new QLineEdit();
     searchField = search;
     search->setPlaceholderText(translate("Add or search friends"));
-    search->setStyleSheet("padding:10px 12px; border:2px solid #101010; border-radius:16px; background:#f2f2f2;");
+    search->setStyleSheet("padding:10px 12px; border:none; border-radius:16px; background:#f2f2f2;");
 
     // static headers and containers
     QLabel *friendsTitle = new QLabel(translate("Friends"));
@@ -1642,13 +1725,6 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *chatLayout = new QVBoxLayout(chatContainer);
     chatLayout->setContentsMargins(12, 12, 12, 12);
     chatLayout->setSpacing(8);
-    {
-        QHBoxLayout *langBar = new QHBoxLayout();
-        langBar->setContentsMargins(0, 0, 0, 0);
-        langBar->addStretch();
-        langBar->addWidget(makeLanguageButton(chatContainer));
-        chatLayout->addLayout(langBar);
-    }
     chatLayout->addWidget(chatPageInst);
 
     PostPage *postPage = new PostPage();
@@ -1656,13 +1732,6 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *postLayout = new QVBoxLayout(postPageWidget);
     postLayout->setContentsMargins(12, 12, 12, 12);
     postLayout->setSpacing(8);
-    {
-        QHBoxLayout *langBar = new QHBoxLayout();
-        langBar->setContentsMargins(0, 0, 0, 0);
-        langBar->addStretch();
-        langBar->addWidget(makeLanguageButton(postPageWidget));
-        postLayout->addLayout(langBar);
-    }
     postLayout->addWidget(postPage);
 
     auto renderCards = [&](const QList<FriendData> &list, QVBoxLayout *targetLayout, const QString &filter, bool isFriendList) {
@@ -1681,7 +1750,7 @@ int main(int argc, char *argv[]) {
             ++added;
             int idx = idxCounter++;
             QFrame *card = new QFrame();
-            card->setStyleSheet("QFrame { background:#ffffff; border:2px solid #0b0b0b; border-radius:18px; }");
+            card->setStyleSheet("QFrame { background:#ffffff; border-radius:18px; }");
             QHBoxLayout *cardLayout = new QHBoxLayout(card);
             cardLayout->setContentsMargins(12, 10, 12, 10);
             cardLayout->setSpacing(12);
@@ -1694,7 +1763,7 @@ int main(int argc, char *argv[]) {
             if (!avatar.isNull()) {
                 avatarBtn->setIcon(QIcon(avatar));
             }
-            avatarBtn->setStyleSheet("border:2px solid #0b0b0b; border-radius:28px; background:#fdfdfd;");
+            avatarBtn->setStyleSheet("border:none; border-radius:28px; background:#fdfdfd;");
             cardLayout->addWidget(avatarBtn);
 
             QVBoxLayout *infoColumn = new QVBoxLayout();
@@ -1765,6 +1834,15 @@ int main(int argc, char *argv[]) {
     // setting page
     SettingWindow *settingPage = new SettingWindow();
     contentStack->addWidget(settingPage);
+    if (profileSettingsBtn) {
+        QObject::connect(profileSettingsBtn, &QToolButton::clicked, &window, [=]() {
+            settingPage->setUserProfile(myProfile);
+            contentStack->setCurrentWidget(settingPage);
+        });
+    }
+    QObject::connect(settingPage, &SettingWindow::shareProfileRequested, &window, [&]() {
+        showShareSheet(QStringLiteral("Share %1").arg(myProfile.handle), &window, chatPage, chatContainer, rebuildFeed);
+    });
 
     DetailWindow *detailPage = new DetailWindow();
     contentStack->addWidget(detailPage);
@@ -1796,8 +1874,7 @@ int main(int argc, char *argv[]) {
                             translate("Friends"),
                             translate("Post"),
                             translate("Chat"),
-                            translate("Profile"),
-                            translate("Settings")};
+                            translate("Profile")};
     for (const QString &item : navItems) {
         QPushButton *navButton = new QPushButton(item);
         navButton->setFlat(true);
@@ -1845,18 +1922,14 @@ int main(int argc, char *argv[]) {
             QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
                 contentStack->setCurrentWidget(friendsPage);
             });
-        } else if (item == "Settings" || item == translate("Settings") || item == "设置" || item == "settings") {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                settingPage->setUserProfile(myProfile);
-                contentStack->setCurrentWidget(settingPage);
-            });
         }
     }
     QObject::connect(settingPage, &SettingWindow::backToHome, &window, [=]() {
-        contentStack->setCurrentWidget(homePage);
+        contentStack->setCurrentWidget(profilePage);
     });
 
     QObject::connect(settingPage, &SettingWindow::openDetail, &window, [=](const QString& title, const QString& category) {
+        Q_UNUSED(category);
         detailPage->setupContent(title);
         contentStack->setCurrentWidget(detailPage);
     });
