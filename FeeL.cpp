@@ -407,8 +407,15 @@ int main(int argc, char *argv[]) {
     QWidget *header = new QWidget();
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(0, 0, 0, 0);
-    QLabel *logo = new QLabel("FeeL");
-    logo->setStyleSheet("font-weight:800; letter-spacing:4px; font-size:20px;");
+    QLabel *logo = new QLabel();
+    QPixmap logoPm(":/assets/logo.png");
+    if (!logoPm.isNull()) {
+        logoPm = logoPm.scaled(90, 24, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        logo->setPixmap(logoPm);
+    } else {
+        logo->setText("FeeL");
+        logo->setStyleSheet("font-weight:800; letter-spacing:4px; font-size:20px;");
+    }
     headerLayout->addWidget(logo);
     headerLayout->addStretch();
     QFrame *square = new QFrame();
@@ -1039,7 +1046,8 @@ int main(int argc, char *argv[]) {
         likeBtn->setIcon(makeHeartIcon(false, 22));
         likeBtn->setStyleSheet("QToolButton { border:none; padding:6px; }");
         QLabel *likeCount = new QLabel(QString::number(*fc.likeValue));
-        likeCount->setStyleSheet("font-weight:700; color:#0b0b0b;");
+        likeCount->setStyleSheet("font-weight:700; color:#0b0b0b; border:none; background:transparent;");
+        likeCount->setFrameStyle(QFrame::NoFrame);
         statsRow->addWidget(likeBtn);
         statsRow->addWidget(likeCount);
         statsRow->addStretch();
@@ -1425,7 +1433,8 @@ int main(int argc, char *argv[]) {
         likeBtn->setIcon(makeHeartIcon(fc.likedValue ? *fc.likedValue : false, 22));
         likeBtn->setStyleSheet("QToolButton { border:none; padding:8px; }");
         QLabel *likeCount = new QLabel(QString::number(fc.likeValue ? *fc.likeValue : 0));
-        likeCount->setStyleSheet("font-weight:700;");
+        likeCount->setStyleSheet("font-weight:700; border:none; background:transparent;");
+        likeCount->setFrameStyle(QFrame::NoFrame);
         actionRow->addWidget(likeBtn);
         actionRow->addWidget(likeCount);
         actionRow->addStretch();
@@ -1866,65 +1875,61 @@ int main(int argc, char *argv[]) {
     applyProfile(myProfile);
     phoneLayout->addWidget(contentStack);
 
-    QWidget *navBar = new QWidget();
+    
+QWidget *navBar = new QWidget();
     QHBoxLayout *navLayout = new QHBoxLayout(navBar);
     navLayout->setSpacing(18);
     navLayout->setContentsMargins(0, 0, 0, 0);
-    QStringList navItems = {translate("Home"),
-                            translate("Friends"),
-                            translate("Post"),
-                            translate("Chat"),
-                            translate("Profile")};
-    for (const QString &item : navItems) {
-        QPushButton *navButton = new QPushButton(item);
-        navButton->setFlat(true);
-        navButton->setStyleSheet("QPushButton { border: none; font-weight:600; color:#5f5f5f; }");
-        navLayout->addWidget(navButton);
-
-        if (item == "Friends") {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                contentStack->setCurrentWidget(friendsPage);
-            });
-        } else if (item == "Profile" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                applyProfile(myProfile);
-                contentStack->setCurrentWidget(profilePage);
-            });
-        } else if (item == "Post" || item == translate("Post") || item == "发布" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [&, contentStack, postPageWidget]() {
-                lastPageBeforePost = contentStack->currentWidget();
-                contentStack->setCurrentWidget(postPageWidget);
-            });
-        } else if (item == "Chat" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                contentStack->setCurrentWidget(chatContainer);
-            });
-        } else if (item == "Home" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                rebuildFeed();
-                contentStack->setCurrentWidget(homePage);
-            });
-        } else if (item == "个人资料" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                applyProfile(myProfile);
-                contentStack->setCurrentWidget(profilePage);
-            });
-        } else if (item == "聊天" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                contentStack->setCurrentWidget(chatContainer);
-            });
-        } else if (item == "首页" ) {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                rebuildFeed();
-                contentStack->setCurrentWidget(homePage);
-            });
-        } else if (item == "好友") {
-            QObject::connect(navButton, &QPushButton::clicked, &window, [=]() {
-                contentStack->setCurrentWidget(friendsPage);
-            });
+    struct NavEntry {
+        QString key;
+        QString iconPath;
+        QString iconPathDark;
+        QPushButton *button = nullptr;
+        std::function<void()> handler;
+    };
+    auto makeIcon = [](const QString &res, const QString &resDark, bool selected) -> QIcon {
+        const QString path = selected ? resDark : res;
+        QPixmap pm(path);
+        if (pm.isNull()) return QIcon();
+        return QIcon(pm);
+    };
+    QList<NavEntry> navItems;
+    auto addNav = [&](const QString &key, const QString &icon, const QString &iconDark, const std::function<void()> &fn) {
+        NavEntry e;
+        e.key = key;
+        e.iconPath = icon;
+        e.iconPathDark = iconDark;
+        e.handler = fn;
+        navItems.append(e);
+    };
+    addNav("home", ":/assets/UIHome.png", ":/assets/UIHome_dark.png", [&]() { rebuildFeed(); contentStack->setCurrentWidget(homePage); });
+    addNav("friends", ":/assets/UIFriends.png", ":/assets/UIFriends_dark.png", [&]() { contentStack->setCurrentWidget(friendsPage); });
+    addNav("post", ":/assets/UIPost.png", ":/assets/UIPost_dark.png", [&]() { lastPageBeforePost = contentStack->currentWidget(); contentStack->setCurrentWidget(postPageWidget); });
+    addNav("chat", ":/assets/UIChat.png", ":/assets/UIChat_dark.png", [&]() { contentStack->setCurrentWidget(chatContainer); });
+    addNav("profile", ":/assets/UIProfile.png", ":/assets/UIProfile_dark.png", [&]() { applyProfile(myProfile); contentStack->setCurrentWidget(profilePage); });
+    auto syncNavState = [&](const QString &activeKey) {
+        for (NavEntry &entry : navItems) {
+            if (!entry.button) continue;
+            const bool active = (entry.key == activeKey);
+            entry.button->setIcon(makeIcon(entry.iconPath, entry.iconPathDark, active));
         }
+    };
+    for (NavEntry &entry : navItems) {
+        QPushButton *navButton = new QPushButton();
+        navButton->setFlat(true);
+        navButton->setCheckable(false);
+        navButton->setIcon(makeIcon(entry.iconPath, entry.iconPathDark, false));
+        navButton->setIconSize(QSize(34, 34));
+        navButton->setStyleSheet("QPushButton { border: none; padding: 6px; }");
+        entry.button = navButton;
+        navLayout->addWidget(navButton);
+        QObject::connect(navButton, &QPushButton::clicked, &window, [&, entry]() {
+            if (entry.handler) entry.handler();
+            syncNavState(entry.key);
+        });
     }
-    QObject::connect(settingPage, &SettingWindow::backToHome, &window, [=]() {
+    syncNavState("home");
+QObject::connect(settingPage, &SettingWindow::backToHome, &window, [=]() {
         contentStack->setCurrentWidget(profilePage);
     });
 

@@ -129,9 +129,9 @@ void SettingWindow::setupUI()
     QFrame *userCard = new QFrame();
     userCard->setStyleSheet(
         "QFrame {"
-        "    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
+        "    background: #ffffff;"
         "    border: none;"
-        "    border-radius: 12px;"
+        "    border-radius: 0px;"
         "}"
         );
     QHBoxLayout *userLayout = new QHBoxLayout(userCard);
@@ -144,9 +144,9 @@ void SettingWindow::setupUI()
     m_avatarLabel->setScaledContents(true);
     m_avatarLabel->setStyleSheet(
         "border-radius: 30px;"
-        "border: 3px solid rgba(255,255,255,0.5);"
-        "background: rgba(255,255,255,0.2);"
-        "color: white;"
+        "border: none;"
+        "background: #f4f4f4;"
+        "color: #0b0b0b;"
         "font-size: 20px;"
         "font-weight: bold;"
         );
@@ -158,11 +158,12 @@ void SettingWindow::setupUI()
     m_nameLabel->setStyleSheet(
         "font-size: 18px;"
         "font-weight: bold;"
-        "color: white;"
+        "color: #0b0b0b;"
         );
     m_handleLabel = new QLabel("@guest");
     m_handleLabel->setStyleSheet(
-        "color: rgba(255,255,255,0.8);"
+        "color: #0b0b0b;"
+        "font-size: 13px;"
         );
     userInfo->addWidget(m_nameLabel);
     userInfo->addWidget(m_handleLabel);
