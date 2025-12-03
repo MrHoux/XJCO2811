@@ -8,4 +8,7 @@
         <file alias="avatar6.jpg">assets/avatar/avatar6.jpg</file>
         <file alias="avatar7.jpg">assets/avatar/avatar7.jpg</file>
     </qresource>
+    <qresource prefix="/assets">
+        <file alias="logo.png">assets/logo.png</file>
+    </qresource>
 </RCC>

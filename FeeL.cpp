@@ -407,8 +407,15 @@ int main(int argc, char *argv[]) {
     QWidget *header = new QWidget();
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(0, 0, 0, 0);
-    QLabel *logo = new QLabel("FeeL");
-    logo->setStyleSheet("font-weight:800; letter-spacing:4px; font-size:20px;");
+    QLabel *logo = new QLabel();
+    QPixmap logoPm(":/assets/logo.png");
+    if (!logoPm.isNull()) {
+        logoPm = logoPm.scaled(90, 24, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        logo->setPixmap(logoPm);
+    } else {
+        logo->setText("FeeL");
+        logo->setStyleSheet("font-weight:800; letter-spacing:4px; font-size:20px;");
+    }
     headerLayout->addWidget(logo);
     headerLayout->addStretch();
     QFrame *square = new QFrame();
