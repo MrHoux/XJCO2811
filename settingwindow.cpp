@@ -1,4 +1,4 @@
-#include "settingwindow.h"
+﻿#include "settingwindow.h"
 #include <QMessageBox>
 #include <QFrame>
 #include <QStyle>
@@ -7,6 +7,10 @@
 #include <QLabel>
 #include <QScrollArea>
 #include <functional>
+#include <QToolButton>
+#include <QGraphicsDropShadowEffect>
+#include <QPropertyAnimation>
+#include <QParallelAnimationGroup>
 
 extern QString translate(const QString& text);
 
@@ -14,6 +18,25 @@ SettingWindow::SettingWindow(QWidget *parent)
     : QWidget(parent)
 {
     setupUI();
+}
+
+void animateButton(QWidget *button) {
+    QPropertyAnimation *scaleX = new QPropertyAnimation(button, "scale");
+    scaleX->setDuration(200);
+    scaleX->setKeyValueAt(0, 1.0);
+    scaleX->setKeyValueAt(0.5, 0.95);
+    scaleX->setKeyValueAt(1, 1.0);
+
+    QPropertyAnimation *opacity = new QPropertyAnimation(button, "windowOpacity");
+    opacity->setDuration(200);
+    opacity->setKeyValueAt(0, 1.0);
+    opacity->setKeyValueAt(0.5, 0.8);
+    opacity->setKeyValueAt(1, 1.0);
+
+    QParallelAnimationGroup *group = new QParallelAnimationGroup;
+    group->addAnimation(scaleX);
+    group->addAnimation(opacity);
+    group->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void SettingWindow::setupUI()
@@ -25,20 +48,39 @@ void SettingWindow::setupUI()
     QWidget *header = new QWidget();
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(0, 0, 0, 0);
+    header->setStyleSheet(
+        "background-color: #ffffff;"
+        "border-bottom: 1px solid #e0e0e0;"
+        );
 
     QPushButton *backBtn = new QPushButton(QStringLiteral("‹"));
     backBtn->setFixedSize(46, 38);
-    backBtn->setStyleSheet("QPushButton { padding:6px 10px; border:2px solid #0b0b0b; border-radius:12px; background:transparent; font-weight:800; }"
-                           "QPushButton:hover { background:#f5f5f5; }");
+    backBtn->setStyleSheet(
+        "QPushButton {"
+        "    border: none;"
+        "    font-size: 22px;"
+        "    color: #333;"
+        "    background: transparent;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    color: #007aff;"
+        "}"
+        );
 
     QLabel *title = new QLabel(translate("Settings"));
-    title->setStyleSheet("font-size:18px; font-weight:800; color:#0b0b0b;");
+    title->setStyleSheet(
+        "font-size: 18px;"
+        "font-weight: bold;"
+        "color: #1a1a1a;"
+        );
 
     headerLayout->addWidget(backBtn);
     headerLayout->addStretch();
     headerLayout->addWidget(title);
     headerLayout->addStretch();
     mainLayout->addWidget(header);
+
 
     connect(backBtn, &QPushButton::clicked, this, &SettingWindow::backToHome);
 
@@ -85,7 +127,13 @@ void SettingWindow::setupUI()
     };
 
     QFrame *userCard = new QFrame();
-    userCard->setStyleSheet("QFrame { background:#ffffff; border-radius:24px; }");
+    userCard->setStyleSheet(
+        "QFrame {"
+        "    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
+        "    border: none;"
+        "    border-radius: 12px;"
+        "}"
+        );
     QHBoxLayout *userLayout = new QHBoxLayout(userCard);
     userLayout->setContentsMargins(16, 14, 16, 14);
     userLayout->setSpacing(12);
@@ -94,15 +142,28 @@ void SettingWindow::setupUI()
     m_avatarLabel->setFixedSize(72, 72);
     m_avatarLabel->setAlignment(Qt::AlignCenter);
     m_avatarLabel->setScaledContents(true);
-    m_avatarLabel->setStyleSheet("border-radius:36px; background:#f2f2f2; font-weight:800; font-size:22px; color:#0b0b0b;");
+    m_avatarLabel->setStyleSheet(
+        "border-radius: 30px;"
+        "border: 3px solid rgba(255,255,255,0.5);"
+        "background: rgba(255,255,255,0.2);"
+        "color: white;"
+        "font-size: 20px;"
+        "font-weight: bold;"
+        );
 
     QVBoxLayout *userInfo = new QVBoxLayout();
     userInfo->setContentsMargins(0, 0, 0, 0);
     userInfo->setSpacing(4);
     m_nameLabel = new QLabel(translate("Guest"));
-    m_nameLabel->setStyleSheet("font-size:18px; font-weight:800;");
+    m_nameLabel->setStyleSheet(
+        "font-size: 18px;"
+        "font-weight: bold;"
+        "color: white;"
+        );
     m_handleLabel = new QLabel("@guest");
-    m_handleLabel->setStyleSheet("color:#5a5a5a; font-size:13px;");
+    m_handleLabel->setStyleSheet(
+        "color: rgba(255,255,255,0.8);"
+        );
     userInfo->addWidget(m_nameLabel);
     userInfo->addWidget(m_handleLabel);
 
@@ -155,8 +216,24 @@ void SettingWindow::setupUI()
     contentLayout->addWidget(about.first);
 
     QPushButton *logoutBtn = new QPushButton(translate("Log Out"));
-    logoutBtn->setStyleSheet("QPushButton { padding:14px; font-size:16px; font-weight:800; color:#ffffff; background:#ff5c5c; border:2px solid #0b0b0b; border-radius:16px; }"
-                             "QPushButton:hover { background:#ff4242; }");
+    logoutBtn->setStyleSheet(
+        "QPushButton {"
+        "    padding: 16px;"
+        "    font-size: 16px;"
+        "    font-weight: 600;"
+        "    color: white;"
+        "    background-color: #ff4757;"
+        "    border: none;"
+        "    border-radius: 12px;"
+        "    margin-top: 30px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #ff3742;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #ff2e3d;"
+        "}"
+        );
     QObject::connect(logoutBtn, &QPushButton::clicked, []() {
         QMessageBox msgBox;
         msgBox.setWindowTitle(translate("Log Out"));
@@ -173,6 +250,85 @@ void SettingWindow::setupUI()
     contentLayout->addStretch();
     scrollArea->setWidget(content);
     mainLayout->addWidget(scrollArea);
+
+
+
+    QLabel *featuresTitle = new QLabel(this);
+
+    featuresTitle->setStyleSheet(
+        "color: #8e8e93;"
+        "font-weight: 600;"
+        "font-size: 13px;"
+        "margin-top: 10px;"
+        "text-transform: uppercase;"
+        "letter-spacing: 1px;"
+        );
+
+    auto createStyledButton = [](const QString& text) {
+        QToolButton *btn = new QToolButton();
+        btn->setText(text);
+        btn->setStyleSheet(
+            "QToolButton {"
+            "    text-align: left;"
+            "    padding: 16px 20px;"
+            "    font-size: 16px;"
+            "    font-weight: 500;"
+            "    color: #1a1a1a;"
+            "    background: white;"
+            "    border: none;"
+            "    border-radius: 12px;"
+            "    margin: 5px 0;"
+            "}"
+            "QToolButton:hover {"
+            "    background: #f5f5f7;"
+            "    transform: translateY(-1px);"
+            "}"
+            "QToolButton:pressed {"
+            "    background: #e5e5ea;"
+            "}"
+            );
+        QLabel *arrow = new QLabel("›", btn);
+        arrow->setStyleSheet(
+            "color: #c7c7cc;"
+            "font-size: 24px;"
+            "font-weight: bold;"
+            );
+        arrow->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+        QHBoxLayout *btnLayout = new QHBoxLayout(btn);
+        btnLayout->setContentsMargins(0, 0, 10, 0);
+        btnLayout->addStretch();
+        btnLayout->addWidget(arrow);
+
+        QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
+        shadow->setBlurRadius(15);
+        shadow->setColor(QColor(0, 0, 0, 20));
+        shadow->setOffset(0, 2);
+        btn->setGraphicsEffect(shadow);
+
+        return btn;
+    };
+
+    scrollArea->setStyleSheet(
+        "QScrollArea {"
+        "    border: none;"
+        "    background: #f5f5f7;"
+        "}"
+        "QScrollBar:vertical {"
+        "    border: none;"
+        "    background: transparent;"
+        "    width: 8px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: #c7c7cc;"
+        "    border-radius: 4px;"
+        "    min-height: 30px;"
+        "}"
+        "QScrollBar::handle:vertical:hover {"
+        "    background: #a0a0a5;"
+        "}"
+        );
+
 }
 
 void SettingWindow::setUserProfile(const FriendData& profile)

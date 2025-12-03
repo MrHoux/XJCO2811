@@ -166,7 +166,7 @@ QMap<QString, QMap<QString, QString>> translationDictionary = {
             {"Settings", "设置"},{"SETTINGS", "设置"},{"Notifications", "通知"},
             {"Privacy", "隐私"},{"Time Zone", "时区"},
             {"Other", "其他"},{"ABOUT", "关于"},
-            {"Share FeeL", "分享Feel"},{"Rate FeeL", "评价Feel"},
+            {"Share FeeL", "分享FeeL"},{"Rate FeeL", "评价Feel"},
             {"Help", "帮助"},{"About", "更多"},{"Log Out", "退出登录"},
             {"This is the detailed view for: ","此页为："},
             {"Are you sure you want to log out?","你确定要退出登录吗？"},
