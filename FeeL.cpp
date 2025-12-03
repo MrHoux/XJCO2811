@@ -170,13 +170,29 @@ QMap<QString, QMap<QString, QString>> translationDictionary = {
             {"Add or search friends", "添加或搜索好友"},
 
             {"Audio", "音频"},{"FEATURES", "特点"},
-            {"Settings", "设置"},{"Notifications", "通知"},
+            {"Settings", "设置"},{"SETTINGS", "设置"},{"Notifications", "通知"},
             {"Privacy", "隐私"},{"Time Zone", "时区"},
             {"Other", "其他"},{"ABOUT", "关于"},
             {"Share FeeL", "分享Feel"},{"Rate FeeL", "评价Feel"},
             {"Help", "帮助"},{"About", "更多"},{"Log Out", "退出登录"},
             {"This is the detailed view for: ","此页为："},
             {"Are you sure you want to log out?","你确定要退出登录吗？"},
+            {"Volume", "音量"},{"Mute audio", "静音"},{"Auto-play videos", "自动播放视频"},
+            {"Sound", "声音"},{"Push notifications", "音频推送通知"},{"Vibrate", "振动"},
+            {"Notification types", "通知类型"},{"Likes", "喜欢"},{"Comments", "评论"},
+            {"New followers", "新关注的人"},
+
+            {"Private", "私人"},{"Friends only", "仅朋友"},{"Public", "公共"},
+            {"Account privacy", "账户隐私"},{"Hide profile from search", "在搜索中隐藏个人资料"},{"Hide activity status", "隐藏活动状态"},
+            {"Select time zone", "选择时区"},{"Auto-detect time zone", "自动检测时区"},
+            {"Clear Cache", "清除缓存"},{"Data Usage", "数据使用"},{"Language", "语言"},
+            {"Share FeeL with your friends and family!", "把FeeL分享给你的朋友和家人吧！"},{"Share Now", "分享"},
+            {"If you enjoy using FeeL, please take a moment to rate us. Your feedback helps us improve!", "如果您喜欢使用FeeL，请花点时间给我们评分。您的反馈有助于我们改进！"},
+            {"Rate on App Store", "应用商店评分"},
+            {"Help & Support", "帮助与支持"},{"Contact Support", "联系客服"},{"FAQ","常见问题解答"},
+            {"Report a Problem", "报告问题"},{"About FeeL", "关于FeeL"},{"Version: 1.0.0", "版本:1.0.0"},
+            {"Build: 2024.12.1", "开发于：2024.12.1"},
+            {"FeeL is a social video platform that allows users to share and discover authentic moments with friends and the community.", "FeeL是一个社交视频平台，允许用户与朋友及社区分享和发现真实的瞬间。"},
             {"Your Posts are private and ephemeral unless shared.", "除非进行分享，否则你的帖子是私密且短暂的。"}
 
         }}
@@ -391,11 +407,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (videos.size() == 0) {
-        // const int result = QMessageBox::information(
-        //             NULL,
-        //             QString("FeeL"),
-        //             QString("no videos found in selected folder."));
-        // exit(-1);
         qDebug() << "No videos found, using demo mode";
     }
 
@@ -1785,8 +1796,8 @@ int main(int argc, char *argv[]) {
                             translate("Friends"),
                             translate("Post"),
                             translate("Chat"),
-                            translate("Settings"),
-                            translate("Profile")};
+                            translate("Profile"),
+                            translate("Settings")};
     for (const QString &item : navItems) {
         QPushButton *navButton = new QPushButton(item);
         navButton->setFlat(true);
@@ -1841,7 +1852,6 @@ int main(int argc, char *argv[]) {
             });
         }
     }
-
     QObject::connect(settingPage, &SettingWindow::backToHome, &window, [=]() {
         contentStack->setCurrentWidget(homePage);
     });
@@ -1858,6 +1868,10 @@ int main(int argc, char *argv[]) {
     // back from profile to friends
     QObject::connect(backToFriends, &QPushButton::clicked, &window, [=]() {
         contentStack->setCurrentWidget(friendsPage);
+    });
+
+    QObject::connect(detailPage, &DetailWindow::languageSelected, &window, [&](const QString& lang) {
+        switchLanguage(lang);
     });
 
     // default page

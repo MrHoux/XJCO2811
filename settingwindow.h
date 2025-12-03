@@ -19,7 +19,7 @@ public:
 signals:
     void backToHome();
     void openDetail(const QString& title, const QString& category);
-
+    void languageSelected(const QString& langCode);
 // private slots:
 //     void onButtonClicked();
 

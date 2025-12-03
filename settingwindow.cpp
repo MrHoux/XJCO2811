@@ -98,6 +98,8 @@ void SettingWindow::setupUI()
         );
     contentLayout->addWidget(audioBtn);
 
+
+
     connect(audioBtn, &QPushButton::clicked, [this]() {
         emit openDetail(translate("Audio"), translate("Audio"));
     });
@@ -136,17 +138,19 @@ void SettingWindow::setupUI()
     contentLayout->addWidget(timezoneBtn);
     contentLayout->addWidget(otherBtn);
 
+
+
     connect(notificationsBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Notifications", "Notifications");
+        emit openDetail(translate("Notifications"), translate("Notifications"));
     });
     connect(privacyBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Privacy", "Privacy");
+        emit openDetail(translate("Privacy"), translate("Privacy"));
     });
     connect(timezoneBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Time Zone", "Time Zone");
+        emit openDetail(translate("Time Zone"), translate("Time Zone"));
     });
     connect(otherBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Other", "Other");
+        emit openDetail(translate("Other"), translate("Other"));
     });
 
     // ABOUT
@@ -165,16 +169,16 @@ void SettingWindow::setupUI()
     contentLayout->addWidget(aboutBtn);
 
     connect(shareBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Share FeeL", "Share FeeL");
+        emit openDetail(translate("Share FeeL"), translate("Share FeeL"));
     });
     connect(rateBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Rate FeeL", "Rate FeeL");
+        emit openDetail(translate("Rate FeeL"), translate("Rate FeeL"));
     });
     connect(helpBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("Help", "Help");
+        emit openDetail(translate("Help"), translate("Help"));
     });
     connect(aboutBtn, &QPushButton::clicked, [this]() {
-        emit openDetail("About", "About");
+        emit openDetail(translate("About"), translate("About"));
     });
 
     // OUT
