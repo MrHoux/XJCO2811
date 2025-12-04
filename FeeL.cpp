@@ -367,22 +367,68 @@ int main(int argc, char *argv[]) {
     qDebug() << "Qt version: " << QT_VERSION_STR;
     qDebug() << "Starting FeeL application...";
 
-    // collect all the videos in the folder (prompt if not provided)
+    // video
+
     std::vector<TheButtonInfo> videos;
     QString folder;
+
+    // 1   command
     if (argc == 2) {
         folder = QString::fromLocal8Bit(argv[1]);
-    }
-    if (folder.isEmpty()) {
-        folder = QFileDialog::getExistingDirectory(nullptr, translate("Select video folder"), QDir::homePath());
-    }
-    if (!folder.isEmpty()) {
-        videos = getInfoIn(folder.toStdString());
+        qDebug() << "Using video folder from command line:" << folder;
     }
 
-    if (videos.size() == 0) {
-        qDebug() << "No videos found, using demo mode";
+    // 2   automatic search
+    if (folder.isEmpty()) {
+        QDir appDir(QCoreApplication::applicationDirPath());
+
+        QStringList searchPaths;
+        searchPaths << appDir.filePath("video")
+                    << appDir.filePath("../video")
+                    << appDir.filePath("../../video")
+                    << QDir::currentPath() + "/video"
+                    << QDir::currentPath() + "/../video";
+
+        for (const QString &path : searchPaths) {
+            if (QDir(path).exists()) {
+                folder = path;
+                qDebug() << "Found video folder at:" << folder;
+                break;
+            }
+        }
     }
+
+    //3  manual search
+    if (folder.isEmpty()) {
+        qDebug() << "Could not find video folder automatically";
+        folder = QFileDialog::getExistingDirectory(nullptr,
+                                                   translate("Select video folder"),
+                                                   QDir::homePath(),
+                                                   QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        if (!folder.isEmpty()) {
+            qDebug() << "User selected video folder:" << folder;
+        }
+    }
+
+    //4 no video
+    if (!folder.isEmpty()) {
+        videos = getInfoIn(folder.toStdString());
+
+        if (videos.empty()) {
+            qDebug() << "No videos found in" << folder;
+            qDebug() << "Please make sure video files have corresponding thumbnail images (.png)";
+        } else {
+            qDebug() << "Successfully loaded" << videos.size() << "videos from" << folder;
+        }
+    } else {
+        qDebug() << "No video folder specified. Using demo mode.";
+    }
+
+    if (videos.empty()) {
+        qDebug() << "Running in demo mode with sample content";
+    }
+
+
 
 
     // create the main window with a centered phone mock
