@@ -17,8 +17,8 @@ class ThePlayer : public QMediaPlayer {
 Q_OBJECT
 
 private:
-    std::vector<TheButtonInfo>* infos;
-    std::vector<TheButton*>* buttons;
+    std::vector<TheButtonInfo>* infos;   // library of videos
+    std::vector<TheButton*>* buttons;    // UI buttons bound to videos
     QTimer* mTimer;
     long updateCount = 0;
 

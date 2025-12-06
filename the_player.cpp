@@ -11,7 +11,7 @@ void ThePlayer::setContent(std::vector<TheButton*>* b, std::vector<TheButtonInfo
     buttons = b;
     infos = i;
     if (buttons && !buttons->empty() && buttons->at(0)) {
-        jumpTo(buttons->at(0)->info);
+        jumpTo(buttons->at(0)->info); // start with the first clip
     }
 }
 
@@ -41,7 +41,6 @@ void ThePlayer::jumpTo(TheButtonInfo* button) {
     if (button && button->url) return;
 
         setMedia( * button -> url);
-        play();
+        play(); // immediate playback after selection
 
 }
-

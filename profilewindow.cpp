@@ -4,6 +4,7 @@
 extern QString currentLanguage;
 extern QString translate(const QString& text);
 
+// Build a lightweight profile viewer with back navigation.
 Profilewindow::Profilewindow(QWidget *parent)
     : QWidget{parent}
 {
@@ -30,6 +31,7 @@ Profilewindow::Profilewindow(QWidget *parent)
     connect(backBtn, &QPushButton::clicked, this, &Profilewindow::BackToFriends);
 }
 
+// Populate labels with profile data, using a fallback for empty bios.
 void Profilewindow::setProfileInfo(const FriendData& data) {
     m_nameLabel->setText(data.name);
     m_bioLabel->setText(data.bio.isEmpty() ? translate("no profile") : data.bio);

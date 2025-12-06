@@ -14,12 +14,14 @@
 
 extern QString translate(const QString& text);
 
+// Construct settings window and build its UI.
 SettingWindow::SettingWindow(QWidget *parent)
     : QWidget(parent)
 {
     setupUI();
 }
 
+// Add a simple press animation to buttons.
 void animateButton(QWidget *button) {
     QPropertyAnimation *scaleX = new QPropertyAnimation(button, "scale");
     scaleX->setDuration(200);
@@ -39,6 +41,7 @@ void animateButton(QWidget *button) {
     group->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
+// Assemble the settings UI: header, sections, and actions.
 void SettingWindow::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -332,6 +335,7 @@ void SettingWindow::setupUI()
 
 }
 
+// Populate labels and avatar with the given profile info.
 void SettingWindow::setUserProfile(const FriendData& profile)
 {
     m_profile = profile;

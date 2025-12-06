@@ -1,4 +1,5 @@
-﻿// #include <iostream>
+﻿//Version 4 2025/12/04
+// #include <iostream>
 // #include <algorithm>
 #include <algorithm>
 #include <QApplication>
@@ -7,6 +8,7 @@
 #include <QMediaPlaylist>
 #include <QMap>
 #include <QString>
+#include <QByteArray>
 #include <string>
 #include <vector>
 #include <QtWidgets/QPushButton>
@@ -17,6 +19,11 @@
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QListWidget>
+#ifdef Q_OS_WIN
+#include <ActiveQt/QAxWidget>
+#endif
+#include <QVector>
+#include <QtMultimedia/QMultimedia>
 #include <QtCore/QFileInfo>
 #include <QtWidgets/QFileIconProvider>
 #include <QDesktopServices>
@@ -193,13 +200,15 @@ QMap<QString, QMap<QString, QString>> translationDictionary = {
 
 // current language
 QString currentLanguage = "en";
+
+// Persist the selected UI language to settings.
 void saveLanguageSetting(const QString& lang) {
     QSettings settings("XJCO2811", "FeeL");
     settings.setValue("language", lang);
     qDebug() << "保存语言设置:" << lang;
 }
 
-// loding language
+// Load the saved UI language (defaults to English).
 QString loadLanguageSetting() {
     QSettings settings("XJCO2811", "FeeL");
     QString lang = settings.value("language", "en").toString();
@@ -207,17 +216,17 @@ QString loadLanguageSetting() {
     return lang;
 }
 
-// restart app
+// Restart the application to apply state such as language changes.
 void restartApplication() {
     qDebug() << "重启应用...";
     QProcess::startDetached(QApplication::applicationFilePath(), QStringList());
     QApplication::quit();
 }
 
-// translate
+// Translate a text using the in-memory dictionary.
 QString translate(const QString& text) {
     if (translationDictionary.contains(currentLanguage) &&
-        translationDictionary[currentLanguage].contains(text)) {
+            translationDictionary[currentLanguage].contains(text)) {
         return translationDictionary[currentLanguage][text];
     }
     return text;
@@ -232,6 +241,7 @@ void refreshUITexts() {
 }
 // language switching function
 
+// Switch between supported languages and prompt for restart.
 void switchLanguage(const QString& lang) {
     if (lang == "zh" || lang == "en") {
         currentLanguage = lang;
@@ -255,6 +265,7 @@ void switchLanguage(const QString& lang) {
 
 
 // read in videos and thumbnails to this directory
+// Scan a folder for video files and pair them with thumbnail icons.
 std::vector<TheButtonInfo> getInfoIn (std::string loc) {
 
     std::vector<TheButtonInfo> out =  std::vector<TheButtonInfo>();
@@ -273,9 +284,10 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
             if (f.contains("."))
 
 #if defined(_WIN32)
-            if (f.contains(".wmv"))  { // windows
+            if (f.contains(".wmv", Qt::CaseInsensitive))  { // windows
 #else
-            if (f.contains(".mp4") || f.contains("MOV"))  { // mac/linux
+            if (f.contains(".mp4", Qt::CaseInsensitive) ||
+            f.contains(".mov", Qt::CaseInsensitive))  { // mac/linux
 #endif
 
             QString thumb = f.left( f .length() - 4) +".png";
@@ -298,7 +310,7 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
     return out;
 }
 
-// draw heart outline/fill for like buttons
+// Draw a heart outline/fill icon for like buttons.
 QIcon makeHeartIcon(bool filled, int size = 22) {
     QPixmap pm(size, size);
     pm.fill(Qt::transparent);
@@ -322,9 +334,16 @@ QIcon makeHeartIcon(bool filled, int size = 22) {
 
 
 int main(int argc, char *argv[]) {
+    // Entry point: initializes Qt, loads media, builds UI, runs the app.
 
     // let's just check that Qt is operational first
     qDebug() << "Qt version: " << QT_VERSION_STR << Qt::endl;
+
+#ifdef Q_OS_WIN
+    // Force the WMF backend on Windows to avoid DirectShow 0x80040266 errors when playing mp4
+    qputenv("QT_MULTIMEDIA_PREFERRED_PLUGINS", QByteArray("windowsmediafoundation"));
+    qputenv("QT_MEDIA_BACKEND", QByteArray("windowsmediafoundation"));
+#endif
 
     // create the Qt Application
     QApplication app(argc, argv);
@@ -347,6 +366,19 @@ int main(int argc, char *argv[]) {
     qDebug() << "当前语言:" << currentLanguage;
     // initialize the translator
     g_translator = new QTranslator;
+
+    QMultimedia::SupportEstimate mp4Support = QMediaPlayer::hasSupport(QStringLiteral("video/mp4"), QStringList()); // probe backend MP4 capability
+    const bool mp4Supported = mp4Support != QMultimedia::NotSupported;
+    qDebug() << "MP4 support via Qt backend:" << static_cast<int>(mp4Support);
+#ifdef Q_OS_WIN
+    if (!mp4Supported) {
+        qWarning() << "Qt is missing MP4 codecs on this Windows build (MinGW ships DirectShow only). "
+                   << "Will fall back to Windows Media Player ActiveX for MP4 playback.";
+    }
+#else
+    Q_UNUSED(mp4Supported);
+    Q_UNUSED(mp4Support);
+#endif
 
     // create the main window
     QWidget window;
@@ -383,11 +415,13 @@ int main(int argc, char *argv[]) {
         QDir appDir(QCoreApplication::applicationDirPath());
 
         QStringList searchPaths;
-        searchPaths << appDir.filePath("video")
-                    << appDir.filePath("../video")
-                    << appDir.filePath("../../video")
-                    << QDir::currentPath() + "/video"
-                    << QDir::currentPath() + "/../video";
+        searchPaths << appDir.filePath("videos")
+                    << appDir.filePath("../videos")
+                    << appDir.filePath("../../videos")
+                    << appDir.filePath("../../../videos")
+                    << appDir.filePath("../../../../videos")
+                    << QDir::currentPath() + "/videos"
+                    << QDir::currentPath() + "/../videos";
 
         for (const QString &path : searchPaths) {
             if (QDir(path).exists()) {
@@ -980,6 +1014,18 @@ int main(int argc, char *argv[]) {
 
     // home page cards showing friend accounts as publishers
     std::function<void(FeedCard)> openDetailSheet;
+    std::function<void()> muteHomeAudio = [](){};
+    std::function<void()> resumeHomeAudio = [](){};
+    QVector<FeedCard> feedCards;
+    std::function<void(int)> playExclusive;
+    // Emit a warning whenever a player hits an error
+    auto hookMediaErrors = [](QMediaPlayer *player, const QString &context) {
+        if (!player) return;
+        QObject::connect(player, static_cast<void(QMediaPlayer::*)(QMediaPlayer::Error)>(&QMediaPlayer::error),
+                         player, [player, context](QMediaPlayer::Error error) {
+                             qWarning() << context << "media error" << error << player->errorString();
+                         });
+    };
 
     auto createPhoneCard = [&](TheButtonInfo* info, const FriendData &account, bool autoPlay) -> FeedCard {
         QFrame *card = new QFrame();
@@ -998,7 +1044,26 @@ int main(int argc, char *argv[]) {
         QMediaPlayer *cardPlayer = nullptr;
         QVideoWidget *cardVideo = nullptr;
 
-        if (info != nullptr && info->url && info->url->isValid()) {
+#ifdef Q_OS_WIN
+        const bool needsWmpFallback = info && info->url && info->url->isValid()
+                                      && info->url->toLocalFile().endsWith(".mp4", Qt::CaseInsensitive)
+                                      && !mp4Supported;
+#else
+        const bool needsWmpFallback = false;
+#endif
+
+        if (info != nullptr && info->url && info->url->isValid() && needsWmpFallback) {
+#ifdef Q_OS_WIN
+            QAxWidget *wmp = new QAxWidget(QStringLiteral("WMPlayer.OCX"), card);
+            wmp->setProperty("uiMode", QStringLiteral("none"));
+            wmp->setProperty("stretchToFit", true);
+            wmp->setProperty("enableContextMenu", false);
+            wmp->setProperty("URL", info->url->toLocalFile());
+            wmp->dynamicCall("controls.play()");
+            wmp->setMinimumHeight(200);
+            mediaSurface = wmp;
+#endif
+        } else if (info != nullptr && info->url && info->url->isValid()) {
             cardVideo = new QVideoWidget(card);
             cardVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             cardVideo->setStyleSheet("border:none; border-radius:16px; background:#050505;");
@@ -1008,13 +1073,7 @@ int main(int argc, char *argv[]) {
             loop->setPlaybackMode(QMediaPlaylist::Loop);
             cardPlayer->setPlaylist(loop);
             cardPlayer->setVideoOutput(cardVideo);
-
-            // Error handling
-            QObject::connect(cardPlayer, static_cast<void(QMediaPlayer::*)(QMediaPlayer::Error)>(&QMediaPlayer::error),
-                             [=](QMediaPlayer::Error error) {
-                                 Q_UNUSED(error);
-                             });
-
+            hookMediaErrors(cardPlayer, QStringLiteral("Card player for %1").arg(info->url->toString()));
 
             if (autoPlay) {
                 cardPlayer->play();
@@ -1205,6 +1264,17 @@ int main(int argc, char *argv[]) {
             activeOverlay->deleteLater();
             activeOverlay = nullptr;
         }
+        int overlayHomeIndex = -1;
+        for (int i = 0; i < feedCards.size(); ++i) {
+            if (feedCards[i].info == fc.info) {
+                overlayHomeIndex = i;
+                break;
+            }
+        }
+        if (overlayHomeIndex >= 0) {
+            playExclusive(overlayHomeIndex); // sync modal to the tapped feed card
+        }
+        muteHomeAudio(); // silence the feed when entering detail overlay
         QWidget *overlay = new QWidget(phone);
         overlay->setObjectName(translate("detailOverlay"));
         overlay->setStyleSheet("#detailOverlay { background: rgba(0,0,0,120); }");
@@ -1229,6 +1299,7 @@ int main(int argc, char *argv[]) {
         QWidget *videoWrap = nullptr;
         QMediaPlayer *modalPlayer = nullptr;
         bool hasVideo = fc.info != nullptr;
+        bool usingAxFallback = false;
         QHBoxLayout *mediaControls = nullptr;
         QSlider *progressControl = nullptr;
         QSlider *volumeControl = nullptr;
@@ -1300,136 +1371,162 @@ int main(int argc, char *argv[]) {
             videoContainer->setFixedHeight(videoHeight);
             QVBoxLayout *videoLayout = new QVBoxLayout(videoContainer);
             videoLayout->setContentsMargins(0, 0, 0, 0);
-            QVideoWidget *modalVideo = new QVideoWidget(videoContainer);
-            modalVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            modalVideo->setStyleSheet("border:none; border-radius:14px; background:#050505;");
-            videoLayout->addWidget(modalVideo);
-            modalPlayer = new QMediaPlayer(modalVideo);
-            modalPlayer->setNotifyInterval(200);
-            QMediaPlaylist *loop = new QMediaPlaylist(modalPlayer);
-            loop->addMedia(*fc.info->url);
-            loop->setPlaybackMode(QMediaPlaylist::Loop);
-            modalPlayer->setPlaylist(loop);
-            modalPlayer->setVideoOutput(modalVideo);
-            modalPlayer->play();
-            videoWrap = videoContainer;
+#ifdef Q_OS_WIN
+            const bool needsWmpFallback = fc.info && fc.info->url && fc.info->url->isValid()
+                                          && fc.info->url->toLocalFile().endsWith(".mp4", Qt::CaseInsensitive)
+                                          && !mp4Supported;
+#else
+            const bool needsWmpFallback = false;
+#endif
 
-            mediaControls = new QHBoxLayout();
-            mediaControls->setContentsMargins(0, 0, 0, 0);
-            mediaControls->setSpacing(8);
-            progressControl = new QSlider(Qt::Horizontal);
-            progressControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
-                                           "QSlider::handle:horizontal { background:#0b0b0b; width:12px; margin:-6px 0; border-radius:6px; }");
-            QLabel *volIcon = new QLabel(QStringLiteral("🔊"));
-            volIcon->setStyleSheet("font-weight:800; color:#0b0b0b;");
-            QToolButton *volBtn = new QToolButton();
-            volBtn->setText(QStringLiteral("🔊"));
-            volBtn->setStyleSheet("QToolButton { border:none; padding:4px; font-size:14px; }");
-            volumeControl = new QSlider(Qt::Horizontal);
-            volumeControl->setFixedWidth(60);
-            volumeControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
-                                         "QSlider::handle:horizontal { background:#0b0b0b; width:10px; margin:-6px 0; border-radius:5px; }");
-            speedControl = new QComboBox();
-            speedControl->addItem("0.5x", 0.5);
-            speedControl->addItem("1.0x", 1.0);
-            speedControl->addItem("1.25x", 1.25);
-            speedControl->addItem("1.5x", 1.5);
-            speedControl->setCurrentIndex(1);
-            speedControl->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #0b0b0b; border-radius:10px; background:#ffffff; }");
-            mediaControls->addWidget(progressControl, 1);
-            mediaControls->addWidget(volBtn, 0, Qt::AlignVCenter);
-            mediaControls->addWidget(volumeControl, 0, Qt::AlignVCenter);
-            attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl, volBtn);
-            mediaControls->addWidget(speedControl, 0, Qt::AlignVCenter);
+            if (needsWmpFallback) {
+#ifdef Q_OS_WIN
+                usingAxFallback = true;
+                QAxWidget *wmp = new QAxWidget(QStringLiteral("WMPlayer.OCX"), videoContainer);
+                wmp->setProperty("uiMode", QStringLiteral("none"));
+                wmp->setProperty("stretchToFit", true);
+                wmp->setProperty("enableContextMenu", false);
+                wmp->setProperty("URL", fc.info->url->toLocalFile());
+                wmp->dynamicCall("controls.play()");
+                wmp->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                videoLayout->addWidget(wmp);
+                videoWrap = videoContainer;
+                enterFullScreen = [](){};
+                exitFullScreen = [](){};
+#endif
+            } else {
+                QVideoWidget *modalVideo = new QVideoWidget(videoContainer);
+                modalVideo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                modalVideo->setStyleSheet("border:none; border-radius:14px; background:#050505;");
+                videoLayout->addWidget(modalVideo);
+                modalPlayer = new QMediaPlayer(modalVideo);
+                modalPlayer->setNotifyInterval(200);
+                QMediaPlaylist *loop = new QMediaPlaylist(modalPlayer);
+                loop->addMedia(*fc.info->url);
+                loop->setPlaybackMode(QMediaPlaylist::Loop);
+                modalPlayer->setPlaylist(loop);
+                modalPlayer->setVideoOutput(modalVideo);
+                modalPlayer->play();
+                hookMediaErrors(modalPlayer, QStringLiteral("Modal player for %1").arg(fc.info && fc.info->url ? fc.info->url->toString() : QStringLiteral("<unknown>")));
+                videoWrap = videoContainer;
 
-            fullscreenState = std::make_shared<FullscreenState>();
-            fullscreenState->videoContainer = videoContainer;
-            fullscreenState->videoWidget = modalVideo;
-            fullscreenState->hostLayout = panelLayout;
-            fullscreenState->hostPanel = panel;
-            fullscreenState->player = modalPlayer;
-            fullscreenState->videoContainer->setProperty("originalHeight", videoHeight);
+                mediaControls = new QHBoxLayout();
+                mediaControls->setContentsMargins(0, 0, 0, 0);
+                mediaControls->setSpacing(8);
+                progressControl = new QSlider(Qt::Horizontal);
+                progressControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
+                                               "QSlider::handle:horizontal { background:#0b0b0b; width:12px; margin:-6px 0; border-radius:6px; }");
+                QLabel *volIcon = new QLabel(QStringLiteral("🔊"));
+                volIcon->setStyleSheet("font-weight:800; color:#0b0b0b;");
+                QToolButton *volBtn = new QToolButton();
+                volBtn->setText(QStringLiteral("🔊"));
+                volBtn->setStyleSheet("QToolButton { border:none; padding:4px; font-size:14px; }");
+                volumeControl = new QSlider(Qt::Horizontal);
+                volumeControl->setFixedWidth(60);
+                volumeControl->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#e0e0e0; border-radius:2px; }"
+                                             "QSlider::handle:horizontal { background:#0b0b0b; width:10px; margin:-6px 0; border-radius:5px; }");
+                speedControl = new QComboBox();
+                speedControl->addItem("0.5x", 0.5);
+                speedControl->addItem("1.0x", 1.0);
+                speedControl->addItem("1.25x", 1.25);
+                speedControl->addItem("1.5x", 1.5);
+                speedControl->setCurrentIndex(1);
+                speedControl->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #0b0b0b; border-radius:10px; background:#ffffff; }");
+                mediaControls->addWidget(progressControl, 1);
+                mediaControls->addWidget(volBtn, 0, Qt::AlignVCenter);
+                mediaControls->addWidget(volumeControl, 0, Qt::AlignVCenter);
+                attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl, volBtn);
+                mediaControls->addWidget(speedControl, 0, Qt::AlignVCenter);
 
-            exitFullScreen = [fullscreenState]() {
-                if (fullscreenState->overlayLayer) {
-                    fullscreenState->overlayLayer->deleteLater();
-                    fullscreenState->overlayLayer = nullptr;
-                }
-                if (fullscreenState->videoContainer && fullscreenState->hostPanel && fullscreenState->hostLayout) {
-                    // restore original sizing
-                    bool ok = false;
-                    int hStored = fullscreenState->videoContainer->property("originalHeight").toInt(&ok);
-                    if (ok && hStored > 0) fullscreenState->videoContainer->setFixedHeight(hStored);
-                    fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-                    fullscreenState->videoContainer->setParent(fullscreenState->hostPanel);
-                    fullscreenState->hostLayout->insertWidget(0, fullscreenState->videoContainer);
-                }
-                if (fullscreenState->player) fullscreenState->player->play();
-            };
+                fullscreenState = std::make_shared<FullscreenState>();
+                fullscreenState->videoContainer = videoContainer;
+                fullscreenState->videoWidget = modalVideo;
+                fullscreenState->hostLayout = panelLayout;
+                fullscreenState->hostPanel = panel;
+                fullscreenState->player = modalPlayer;
+                fullscreenState->videoContainer->setProperty("originalHeight", videoHeight);
 
-            enterFullScreen = [fullscreenState, overlay, exitFullScreen, attachVideoControls]() {
-                if (!fullscreenState->videoContainer || !fullscreenState->hostPanel || !fullscreenState->hostLayout) return;
-                if (fullscreenState->overlayLayer) return;
+                exitFullScreen = [fullscreenState]() {
+                    if (fullscreenState->overlayLayer) {
+                        fullscreenState->overlayLayer->deleteLater();
+                        fullscreenState->overlayLayer = nullptr;
+                    }
+                    if (fullscreenState->videoContainer && fullscreenState->hostPanel && fullscreenState->hostLayout) {
+                        // restore original sizing
+                        bool ok = false;
+                        int hStored = fullscreenState->videoContainer->property("originalHeight").toInt(&ok);
+                        if (ok && hStored > 0) fullscreenState->videoContainer->setFixedHeight(hStored);
+                        fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                        fullscreenState->videoContainer->setParent(fullscreenState->hostPanel);
+                        fullscreenState->hostLayout->insertWidget(0, fullscreenState->videoContainer);
+                    }
+                    if (fullscreenState->player) fullscreenState->player->play();
+                };
 
-                QWidget *layer = new QWidget(overlay);
-                layer->setObjectName("fsLayer");
-                layer->setStyleSheet("#fsLayer { background:rgba(0,0,0,220); }");
-                layer->setGeometry(overlay->rect());
-                layer->raise();
-                QVBoxLayout *layout = new QVBoxLayout(layer);
-                layout->setContentsMargins(12, 12, 12, 12);
-                // allow full expansion in fullscreen
-                fullscreenState->videoContainer->setParent(layer);
-                fullscreenState->videoContainer->setMinimumHeight(0);
-                fullscreenState->videoContainer->setMaximumHeight(QWIDGETSIZE_MAX);
-                fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-                fullscreenState->videoWidget->setMinimumHeight(0);
-                fullscreenState->videoWidget->setMaximumHeight(QWIDGETSIZE_MAX);
-                fullscreenState->videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-                fullscreenState->videoContainer->setParent(layer);
-                fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-                layout->addWidget(fullscreenState->videoContainer, 1);
-                QHBoxLayout *controlBar = new QHBoxLayout();
-                controlBar->setContentsMargins(0, 0, 0, 0);
-                controlBar->setSpacing(10);
-                QSlider *fsProgress = new QSlider(Qt::Horizontal);
-                fsProgress->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
-                                          "QSlider::handle:horizontal { background:#ffffff; width:14px; margin:-6px 0; border-radius:7px; }");
-                QToolButton *fsVolBtn = new QToolButton();
-                fsVolBtn->setText(QStringLiteral("🔊"));
-                fsVolBtn->setStyleSheet("QToolButton { border: none; padding:4px; font-size:14px; color:#ffffff; }");
-                QSlider *fsVolume = new QSlider(Qt::Horizontal);
-                fsVolume->setFixedWidth(80);
-                fsVolume->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
-                                        "QSlider::handle:horizontal { background:#ffffff; width:12px; margin:-6px 0; border-radius:6px; }");
-                QComboBox *fsSpeed = new QComboBox();
-                fsSpeed->addItem("0.5x", 0.5);
-                fsSpeed->addItem("1.0x", 1.0);
-                fsSpeed->addItem("1.25x", 1.25);
-                fsSpeed->addItem("1.5x", 1.5);
-                fsSpeed->setCurrentIndex(1);
-                fsSpeed->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #ffffff; border-radius:10px; background:rgba(0,0,0,140); color:#ffffff; }");
-                controlBar->addWidget(fsProgress, 1);
-                controlBar->addWidget(fsVolBtn, 0, Qt::AlignVCenter);
-                controlBar->addWidget(fsVolume, 0, Qt::AlignVCenter);
-                controlBar->addWidget(fsSpeed, 0, Qt::AlignVCenter);
-                QHBoxLayout *bottom = new QHBoxLayout();
-                bottom->setContentsMargins(0, 0, 0, 0);
-                bottom->addLayout(controlBar, 1);
-                bottom->addStretch();
-                QPushButton *exitBtn = new QPushButton(translate("Back"), layer);
-                exitBtn->setStyleSheet("padding:10px 14px; border:2px solid #ffffff; border-radius:14px; background:rgba(0,0,0,160); color:#ffffff; font-weight:700;");
-                bottom->addWidget(exitBtn, 0, Qt::AlignRight | Qt::AlignBottom);
-                layout->addLayout(bottom);
-                attachVideoControls(fullscreenState->player, fsProgress, fsVolume, fsSpeed, fsVolBtn);
-                QObject::connect(exitBtn, &QPushButton::clicked, layer, [=]() {
-                    exitFullScreen();
-                });
-                fullscreenState->overlayLayer = layer;
-                layer->show();
-                fullscreenState->videoContainer->raise();
-                if (fullscreenState->player) fullscreenState->player->play();
-            };
+                enterFullScreen = [fullscreenState, overlay, exitFullScreen, attachVideoControls]() {
+                    if (!fullscreenState->videoContainer || !fullscreenState->hostPanel || !fullscreenState->hostLayout) return;
+                    if (fullscreenState->overlayLayer) return;
+
+                    QWidget *layer = new QWidget(overlay);
+                    layer->setObjectName("fsLayer");
+                    layer->setStyleSheet("#fsLayer { background:rgba(0,0,0,220); }");
+                    layer->setGeometry(overlay->rect());
+                    layer->raise();
+                    QVBoxLayout *layout = new QVBoxLayout(layer);
+                    layout->setContentsMargins(12, 12, 12, 12);
+                    // allow full expansion in fullscreen
+                    fullscreenState->videoContainer->setParent(layer);
+                    fullscreenState->videoContainer->setMinimumHeight(0);
+                    fullscreenState->videoContainer->setMaximumHeight(QWIDGETSIZE_MAX);
+                    fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                    fullscreenState->videoWidget->setMinimumHeight(0);
+                    fullscreenState->videoWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+                    fullscreenState->videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                    fullscreenState->videoContainer->setParent(layer);
+                    fullscreenState->videoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                    layout->addWidget(fullscreenState->videoContainer, 1);
+                    QHBoxLayout *controlBar = new QHBoxLayout();
+                    controlBar->setContentsMargins(0, 0, 0, 0);
+                    controlBar->setSpacing(10);
+                    QSlider *fsProgress = new QSlider(Qt::Horizontal);
+                    fsProgress->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
+                                              "QSlider::handle:horizontal { background:#ffffff; width:14px; margin:-6px 0; border-radius:7px; }");
+                    QToolButton *fsVolBtn = new QToolButton();
+                    fsVolBtn->setText(QStringLiteral("🔊"));
+                    fsVolBtn->setStyleSheet("QToolButton { border: none; padding:4px; font-size:14px; color:#ffffff; }");
+                    QSlider *fsVolume = new QSlider(Qt::Horizontal);
+                    fsVolume->setFixedWidth(80);
+                    fsVolume->setStyleSheet("QSlider::groove:horizontal { height:4px; background:#555; border-radius:2px; }"
+                                            "QSlider::handle:horizontal { background:#ffffff; width:12px; margin:-6px 0; border-radius:6px; }");
+                    QComboBox *fsSpeed = new QComboBox();
+                    fsSpeed->addItem("0.5x", 0.5);
+                    fsSpeed->addItem("1.0x", 1.0);
+                    fsSpeed->addItem("1.25x", 1.25);
+                    fsSpeed->addItem("1.5x", 1.5);
+                    fsSpeed->setCurrentIndex(1);
+                    fsSpeed->setStyleSheet("QComboBox { padding:6px 10px; border:2px solid #ffffff; border-radius:10px; background:rgba(0,0,0,140); color:#ffffff; }");
+                    controlBar->addWidget(fsProgress, 1);
+                    controlBar->addWidget(fsVolBtn, 0, Qt::AlignVCenter);
+                    controlBar->addWidget(fsVolume, 0, Qt::AlignVCenter);
+                    controlBar->addWidget(fsSpeed, 0, Qt::AlignVCenter);
+                    QHBoxLayout *bottom = new QHBoxLayout();
+                    bottom->setContentsMargins(0, 0, 0, 0);
+                    bottom->addLayout(controlBar, 1);
+                    bottom->addStretch();
+                    QPushButton *exitBtn = new QPushButton(translate("Back"), layer);
+                    exitBtn->setStyleSheet("padding:10px 14px; border:2px solid #ffffff; border-radius:14px; background:rgba(0,0,0,160); color:#ffffff; font-weight:700;");
+                    bottom->addWidget(exitBtn, 0, Qt::AlignRight | Qt::AlignBottom);
+                    layout->addLayout(bottom);
+                    attachVideoControls(fullscreenState->player, fsProgress, fsVolume, fsSpeed, fsVolBtn);
+                    QObject::connect(exitBtn, &QPushButton::clicked, layer, [=]() {
+                        exitFullScreen();
+                    });
+                    fullscreenState->overlayLayer = layer;
+                    layer->show();
+                    fullscreenState->videoContainer->raise();
+                    if (fullscreenState->player) fullscreenState->player->play();
+                };
+            }
 
         } else {
             QFrame *ph = new QFrame();
@@ -1441,7 +1538,9 @@ int main(int argc, char *argv[]) {
             videoWrap = ph;
         }
         panelLayout->addWidget(videoWrap);
-        attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl);
+        if (!usingAxFallback) {
+            attachVideoControls(modalPlayer, progressControl, volumeControl, speedControl);
+        }
 
         QHBoxLayout *userRow = new QHBoxLayout();
         userRow->setSpacing(10);
@@ -1487,10 +1586,13 @@ int main(int argc, char *argv[]) {
         QToolButton *fullBtn = new QToolButton();
         fullBtn->setText("⛶");
         fullBtn->setStyleSheet("QToolButton { padding:8px 10px; border:2px solid #0b0b0b; border-radius:14px; background:#ffffff; font-weight:700; }");
-        fullBtn->setEnabled(hasVideo);
-        QObject::connect(fullBtn, &QToolButton::clicked, overlay, [enterFullScreen]() {
-            enterFullScreen();
-        });
+        const bool canFullscreen = hasVideo && !usingAxFallback;
+        fullBtn->setEnabled(canFullscreen);
+        if (canFullscreen) {
+            QObject::connect(fullBtn, &QToolButton::clicked, overlay, [enterFullScreen]() {
+                enterFullScreen();
+            });
+        }
         actionRow->addWidget(fullBtn);
         QToolButton *shareBtn = new QToolButton();
         shareBtn->setText(translate("Share"));
@@ -1545,11 +1647,12 @@ int main(int argc, char *argv[]) {
 
         overlayLayout->addWidget(panel, 0, Qt::AlignCenter);
 
-        auto closeOverlay = [overlay, modalPlayer, &activeOverlay, exitFullScreen]() {
+        auto closeOverlay = [overlay, modalPlayer, &activeOverlay, exitFullScreen, resumeHomeAudio]() {
             exitFullScreen();
             if (modalPlayer) modalPlayer->stop();
             overlay->deleteLater();
             if (activeOverlay == overlay) activeOverlay = nullptr;
+            resumeHomeAudio();
         };
         QObject::connect(closeBtn, &QPushButton::clicked, overlay, closeOverlay);
         DismissFilter *overlayTap = new DismissFilter(overlay);
@@ -1588,8 +1691,53 @@ int main(int argc, char *argv[]) {
     QGridLayout *feedLayout = new QGridLayout(feedContent);
     feedLayout->setSpacing(18);
     feedLayout->setContentsMargins(0, 0, 0, 0);
-    QVector<FeedCard> feedCards;
+    QVector<bool> homeWasPlaying;
+    QVector<bool> homeWasMuted;
+    int currentHomeIndex = -1;
+    playExclusive = [&](int idx) {
+        currentHomeIndex = idx;
+        for (int i = 0; i < feedCards.size(); ++i) {
+            QMediaPlayer *p = feedCards[i].player;
+            if (!p) continue;
+            if (i == idx) {
+                p->setMuted(false);   // keep the focused card audible
+                p->play();            // only one video plays at a time
+            } else {
+                p->pause();           // pause all other feed videos
+            }
+        }
+    };
     feedCards.reserve(static_cast<int>(videos.size()) + 1);
+    muteHomeAudio = [&]() {
+        homeWasPlaying.resize(feedCards.size());
+        homeWasMuted.resize(feedCards.size());
+        for (int i = 0; i < feedCards.size(); ++i) {
+            QMediaPlayer *p = feedCards[i].player;
+            homeWasPlaying[i] = p && p->state() == QMediaPlayer::PlayingState;
+            homeWasMuted[i] = p ? p->isMuted() : false;
+            if (p) {
+                p->setMuted(true); // silence feed while modal shows
+                p->pause();
+            }
+        }
+    };
+    resumeHomeAudio = [&]() {
+        for (int i = 0; i < feedCards.size(); ++i) {
+            QMediaPlayer *p = feedCards[i].player;
+            if (!p) continue;
+            const bool wasMuted = (i < homeWasMuted.size()) ? homeWasMuted[i] : false;
+            const bool wasPlaying = (i < homeWasPlaying.size()) ? homeWasPlaying[i] : false;
+            // only resume playback for the current card; others stay paused
+            p->setMuted(wasMuted);
+            if (wasPlaying && i == currentHomeIndex) {
+                p->play();
+            } else {
+                p->pause();
+            }
+        }
+        homeWasPlaying.clear();
+        homeWasMuted.clear();
+    };
     auto appendFeedCard = [&](TheButtonInfo *info, const FriendData &account, bool autoPlay) {
         FeedCard fc = createPhoneCard(info, account, autoPlay);
         feedCards.append(fc);
@@ -1603,6 +1751,9 @@ int main(int argc, char *argv[]) {
     } else {
         appendFeedCard(nullptr, myProfile, true);
     }
+    if (!feedCards.isEmpty()) {
+        playExclusive(0);
+    }
 
     auto clearGrid = [](QGridLayout *layout) {
         if (!layout) return;
@@ -1615,16 +1766,7 @@ int main(int argc, char *argv[]) {
         }
     };
 
-    auto playCard = [&](int idx) {
-        for (int i = 0; i < feedCards.size(); ++i) {
-            if (feedCards[i].player) {
-                if (i == idx)
-                    feedCards[i].player->play();
-                else
-                    feedCards[i].player->pause();
-            }
-        }
-    };
+    auto playCard = [&](int idx) { playExclusive(idx); };
 
     int lastColumns = -1;
     int lastWidth = -1;

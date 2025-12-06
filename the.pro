@@ -1,4 +1,5 @@
 QT += core gui widgets multimedia multimediawidgets
+QT += axcontainer
 
 TARGET = FeeL
 

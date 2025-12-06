@@ -13,12 +13,14 @@
 
 extern QString translate(const QString& text);
 
+// Construct a detail/settings window shell.
 DetailWindow::DetailWindow(QWidget *parent)
     : QWidget(parent)
 {
     setMinimumSize(320, 480); // allow responsive resizing instead of a fixed phone size
 }
 
+// Build the dynamic content page based on the selected title.
 void DetailWindow::setupContent(const QString& title)
 {
     m_title = title;
@@ -126,6 +128,7 @@ void DetailWindow::setupContent(const QString& title)
     mainLayout->addWidget(scrollArea);
 }
 
+// Populate the audio settings section.
 void DetailWindow::setupAudioContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -163,6 +166,7 @@ void DetailWindow::setupAudioContent(QVBoxLayout *layout)
     layout->addWidget(autoPlayCheckbox);
 }
 
+// Populate the notifications settings section.
 void DetailWindow::setupNotificationsContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -204,6 +208,7 @@ void DetailWindow::setupNotificationsContent(QVBoxLayout *layout)
     layout->addWidget(followCheckbox);
 }
 
+// Populate the privacy settings section.
 void DetailWindow::setupPrivacyContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -236,6 +241,7 @@ void DetailWindow::setupPrivacyContent(QVBoxLayout *layout)
     layout->addWidget(hideActivityCheckbox);
 }
 
+// Populate the time zone settings section.
 void DetailWindow::setupTimezoneContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -265,6 +271,7 @@ void DetailWindow::setupTimezoneContent(QVBoxLayout *layout)
     layout->addWidget(autoTimezoneCheckbox);
 }
 
+// Populate the miscellaneous settings section.
 void DetailWindow::setupOtherContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -337,6 +344,7 @@ void DetailWindow::setupOtherContent(QVBoxLayout *layout)
     });
 }
 
+// Populate the share section.
 void DetailWindow::setupShareContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -366,6 +374,7 @@ void DetailWindow::setupShareContent(QVBoxLayout *layout)
     layout->addWidget(shareButton);
 }
 
+// Populate the rate section.
 void DetailWindow::setupRateContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -395,6 +404,7 @@ void DetailWindow::setupRateContent(QVBoxLayout *layout)
     layout->addWidget(rateButton);
 }
 
+// Populate the help/support section.
 void DetailWindow::setupHelpContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();
@@ -457,6 +467,7 @@ void DetailWindow::setupHelpContent(QVBoxLayout *layout)
     layout->addWidget(reportButton);
 }
 
+// Populate the about section.
 void DetailWindow::setupAboutContent(QVBoxLayout *layout)
 {
     QWidget *parent = layout->parentWidget();

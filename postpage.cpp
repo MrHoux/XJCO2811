@@ -5,6 +5,7 @@
 
 extern QString translate(const QString& text);
 
+// Construct the post creation UI with camera controls.
 PostPage::PostPage(QWidget *parent) : QWidget(parent) {
     QVBoxLayout *root = new QVBoxLayout(this);
     root->setContentsMargins(12, 12, 12, 12);
@@ -91,6 +92,7 @@ PostPage::PostPage(QWidget *parent) : QWidget(parent) {
     onTogglePhoto();
 }
 
+// Update button visuals based on current capture mode.
 void PostPage::updateModeStyles() {
     auto styleBtn = [](QPushButton *btn, bool active) {
         if (!btn) return;
@@ -104,12 +106,14 @@ void PostPage::updateModeStyles() {
     if (modeLabel) modeLabel->setText(currentMode == Mode::Photo ? translate("Photo") : translate("Video"));
 }
 
+// Reset recording timers and flags.
 void PostPage::resetRecording() {
     recording = false;
     timer.stop();
     timerLabel->setText("00:00");
 }
 
+// Show a mock album picker overlay.
 void PostPage::showAlbumOverlay() {
     if (albumOverlay) {
         albumOverlay->deleteLater();
@@ -155,6 +159,7 @@ void PostPage::showAlbumOverlay() {
     albumOverlay->show();
 }
 
+// Show the publish confirmation overlay for photo/video.
 void PostPage::showPublishOverlay(bool isVideo) {
     if (confirmOverlay) {
         confirmOverlay->deleteLater();
@@ -211,18 +216,21 @@ void PostPage::showPublishOverlay(bool isVideo) {
     confirmOverlay->show();
 }
 
+// Switch to photo mode and refresh styles.
 void PostPage::onTogglePhoto() {
     resetRecording();
     currentMode = Mode::Photo;
     updateModeStyles();
 }
 
+// Switch to video mode and refresh styles.
 void PostPage::onToggleVideo() {
     resetRecording();
     currentMode = Mode::Video;
     updateModeStyles();
 }
 
+// Handle capture button: take photo or start/stop recording.
 void PostPage::onCapturePressed() {
     if (currentMode == Mode::Photo) {
         showPublishOverlay(false);
@@ -244,6 +252,7 @@ void PostPage::onCapturePressed() {
     resetRecording();
 }
 
+// Open the mock album overlay.
 void PostPage::onOpenAlbum() {
     showAlbumOverlay();
 }

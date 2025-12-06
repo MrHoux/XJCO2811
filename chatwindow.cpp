@@ -31,6 +31,7 @@ protected:
 };
 }
 
+// Build chat UI with list and thread views.
 ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     QVBoxLayout *root = new QVBoxLayout(this);
     root->setContentsMargins(12, 12, 12, 12);
@@ -130,6 +131,7 @@ ChatWindow::ChatWindow(QWidget *parent) : QWidget(parent) {
     stack->addWidget(threadPage);
 }
 
+// Populate the chat list with friend data.
 void ChatWindow::setThreads(const QList<FriendData> &friends) {
     threads = friends;
     if (!listWrapLayout) return;
@@ -195,6 +197,7 @@ void ChatWindow::setThreads(const QList<FriendData> &friends) {
     listWrapLayout->addStretch();
 }
 
+// Render a single chat bubble widget.
 QWidget* ChatWindow::buildThreadBubble(const Message &m) {
     QWidget *wrap = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(wrap);
@@ -217,6 +220,7 @@ QWidget* ChatWindow::buildThreadBubble(const Message &m) {
     return wrap;
 }
 
+// Recreate the current thread view from stored history.
 void ChatWindow::rebuildThreadView() {
     // safe cleaning
     while (QLayoutItem* child = threadLayout->takeAt(0)) {
@@ -235,6 +239,7 @@ void ChatWindow::rebuildThreadView() {
     threadLayout->addStretch();
 }
 
+// Open a thread by index and ensure seed messages exist.
 void ChatWindow::openThread(int index) {
     if (index < 0 || index >= threads.size()) return;
     currentThreadIndex = index;
@@ -261,10 +266,12 @@ void ChatWindow::openThread(int index) {
     stack->setCurrentWidget(threadPage);
 }
 
+// Convenience wrapper to open a thread by index.
 void ChatWindow::openThreadByIndex(int index) {
     openThread(index);
 }
 
+// Push a share message into a thread and open it if needed.
 void ChatWindow::sendShareMessage(int index, const QString &text) {
     if (!threadHistories.contains(index)) {
         threadHistories.insert(index, {});
@@ -278,6 +285,7 @@ void ChatWindow::sendShareMessage(int index, const QString &text) {
     }
 }
 
+// Create a circular avatar pixmap or a fallback placeholder.
 QPixmap ChatWindow::makeAvatarPixmap(const QString &path, int size) {
 
     QPixmap src(path);

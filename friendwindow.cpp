@@ -4,6 +4,7 @@
 extern QString currentLanguage;
 extern QString translate(const QString& text);
 
+// Build a simple friend list and profile navigation UI.
 Friendwindow::Friendwindow(QWidget *parent)
     : QWidget{parent}
 {
@@ -62,6 +63,7 @@ Friendwindow::Friendwindow(QWidget *parent)
 }
 
 // click friend ：hide the friend window，show the profile window
+// Open the profile window for the selected friend.
 void Friendwindow::onFriendClicked(QListWidgetItem *item) {
     int index = m_friendList->row(item);
     if (index >= 0 && index < m_friends.size()) {
